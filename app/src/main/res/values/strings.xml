@@ -1,0 +1,23 @@
+<resources>
+    <string name="app_name">Fitness Alpha</string>
+    <string name="title_activity_record_workout">Record Workout</string>
+    <string name="recordWorkout">Record Workout</string>
+    <string name="userProfileBtnDescription">Navigates the user to the profile screen</string>
+    <string name="userName">User\'s Name</string>
+    <string name="gender">Gender</string>
+    <string name="weight">Weight</string>
+    <string name="averageWeekly">Average/Weekly</string>
+    <string name="distance">Distance</string>
+    <string name="time">Time</string>
+    <string name="workouts">Workouts</string>
+    <string name="caloriesBurned">Calories Burned</string>
+    <string name="allTime">All Time</string>
+    <string name="userProfileIcon">User Profile Icon</string>
+    <string name="startWorkout">Start Workout</string>
+    <string name="stopWorkout">Stop Workout</string>
+    <string name="defaultDistanceValue">0.0</string>
+    <string name="distanceUnit">miles</string>
+    <string name="durationLabel">Duration</string>
+    <string name="defaultDurationValue">00:00:00</string>
+    <string name="durationUnit">minutes</string>
+</resources>
