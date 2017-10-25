@@ -20,4 +20,7 @@
     <string name="durationLabel">Duration</string>
     <string name="defaultDurationValue">00:00:00</string>
     <string name="durationUnit">minutes</string>
+
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
 </resources>

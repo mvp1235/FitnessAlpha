@@ -9,6 +9,14 @@
     -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 
+    <!-- Needed only if your app targets Android 5.0 (API level 21) or higher. -->
+    <uses-feature android:name="android.hardware.location.gps" />
+    <uses-feature android:name="android.hardware.sensor.accelerometer" />
+    <uses-feature android:name="android.hardware.sensor.stepcounter" />
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
@@ -30,7 +38,7 @@
             android:value="@string/google_maps_key" />
 
         <activity
-            android:name=".RecordWorkoutActivity"
+            android:name=".MainScreenActivity"
             android:label="@string/title_activity_record_workout">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -38,7 +46,8 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".UserProfileActivity"></activity>
+        <activity android:name=".UserProfileActivity" />
+
     </application>
 
 </manifest>

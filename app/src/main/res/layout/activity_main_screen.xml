@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    tools:context="com.example.mvp.fitnessalpha.RecordWorkoutActivity">
+    tools:context="com.example.mvp.fitnessalpha.MainScreenActivity">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -48,6 +48,7 @@
             android:layout_weight="1"
             android:text="@string/distance"
             android:textAlignment="viewStart"
+            android:textAllCaps="true"
             android:textSize="18sp"
             android:textStyle="bold" />
 
@@ -86,6 +87,7 @@
             android:layout_weight="1"
             android:text="@string/durationLabel"
             android:textAlignment="viewStart"
+            android:textAllCaps="true"
             android:textSize="18sp"
             android:textStyle="bold" />
 
@@ -120,10 +122,10 @@
         android:id="@+id/startStopBtn"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:background="@android:color/holo_green_dark"
-        android:text="@string/startWorkout"
         android:layout_gravity="center"
+        android:layout_weight="1"
+        android:background="@color/green_start_color"
+        android:text="@string/startWorkout"
         android:textAlignment="center"
         android:textStyle="bold" />
 
