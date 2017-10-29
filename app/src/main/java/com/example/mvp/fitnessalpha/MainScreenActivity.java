@@ -8,8 +8,10 @@ package com.example.mvp.fitnessalpha;
  */
 
 import android.Manifest;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -25,6 +27,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -36,44 +39,51 @@ import com.google.android.gms.maps.model.MarkerOptions;
 
 
 
-public class MainScreenActivity extends FragmentActivity implements OnMapReadyCallback, SensorEventListener {
+public class MainScreenActivity extends FragmentActivity implements OnMapReadyCallback {
+
+    public static final String ACTION_FOO = "com.example.mvp.fitnessalpha.action.FOO";
+    private TextView tv;
 
     //Google Map and location-related
     private GoogleMap mMap;
     private LocationManager locationManager;
 
-
-    private boolean workoutStarted = false;
-
     //UI Elements
     private Button workoutButton;
 
-    //SensorManager and Sensors
-    private SensorManager mySensors;
-    private Sensor accelerometerSensor;
-    private Sensor stepCounterSensor;
+    private boolean workoutStarted = false;
+    private MyReceiver receiver;
+    private int stepCount;
+
+    private class MyReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            final String action = intent.getAction();
+
+            if (ACTION_FOO.equals(action) && workoutStarted) {
+                Log.i("RECEIVED", "yolo " + intent.getIntExtra("count", 0));
+                stepCount = intent.getIntExtra("count", 0);
+                tv.setText(String.valueOf(stepCount));
+            }
+        }
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main_screen);
+
+        final IntentFilter filter = new IntentFilter(ACTION_FOO);
+        receiver = new MyReceiver();
+
+
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
-        //Retrieve an instance of SensorManager to access sensors
-        mySensors = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
-
-        //Accelerometer Sensor
-        accelerometerSensor = mySensors.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-
-        //Step Counter Sensor
-        stepCounterSensor = mySensors.getDefaultSensor(Sensor.TYPE_STEP_COUNTER);
-
-        //Register and implement a SensorEventListener to receive the data from sensors
-        boolean isAvailable = mySensors.registerListener(this, accelerometerSensor, SensorManager.SENSOR_DELAY_NORMAL);
-
+        tv = (TextView) findViewById(R.id.ex);
+        stepCount = 0;
 
         //Setting up user profile button
         ImageButton profileBtn = (ImageButton) findViewById(R.id.userProfileBtn);
@@ -86,35 +96,45 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
         });
 
         //Setting up start workout button
+        final Intent intentService = new Intent(this, WorkoutSessionService.class);
         workoutButton = (Button) findViewById(R.id.startStopBtn);
         workoutButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 if (!workoutStarted) {
-                    startWorkout();
+                    startWorkout(intentService);
+                    registerReceiver(receiver, filter);
                 } else {
-                    stopWorkout();
+                    stopWorkout(intentService);
+                    unregisterReceiver(receiver);
                 }
             }
         });
     }
 
+
     /**
      *
      */
-    public void startWorkout() {
+    public void startWorkout(Intent intent) {
         workoutStarted = true;
         workoutButton.setText(R.string.stopWorkout);
         workoutButton.setBackgroundColor(getResources().getColor(R.color.red_stop_color));
+
+        //Start intent service
+        startService(intent);
     }
 
     /**
      *
      */
-    public void stopWorkout() {
+    public void stopWorkout(Intent intent) {
         workoutStarted = false;
         workoutButton.setText(R.string.startWorkout);
         workoutButton.setBackgroundColor(getResources().getColor(R.color.green_start_color));
+
+        //Stop intent service
+        stopService(intent);
     }
 
     /**
@@ -155,35 +175,8 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
             mMap.moveCamera(CameraUpdateFactory.newLatLng(here));
             mMap.animateCamera(CameraUpdateFactory.zoomTo(15));
         } else {
-            Toast.makeText(getApplicationContext(), "Cannot obtain permission to retrieve the current location...", Toast.LENGTH_SHORT);
+            Toast.makeText(getApplicationContext(), "Cannot obtain permission to retrieve the current location...", Toast.LENGTH_SHORT).show();
         }
     }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-
-        //Register accelerometer sensor
-        mySensors.registerListener(MainScreenActivity.this, accelerometerSensor, SensorManager.SENSOR_DELAY_NORMAL);
-        //Register step counter sensor
-        mySensors.registerListener(MainScreenActivity.this, stepCounterSensor, SensorManager.SENSOR_DELAY_NORMAL);
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        //mySensors.unregisterListener(this);   // should not unregister for background processing?????
-    }
-
-    @Override
-    public void onSensorChanged(SensorEvent event) {
-        Sensor sensor = event.sensor;
-        float[] values = event.values;
-
-    }
-
-    @Override
-    public void onAccuracyChanged(Sensor sensor, int i) {
-
-    }
 }
