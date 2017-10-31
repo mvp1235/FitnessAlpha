@@ -11,7 +11,6 @@ import android.location.Location;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.RemoteException;
-import android.os.SystemClock;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
@@ -42,6 +41,17 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
     public static final int PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION = 10001;
     public static final int DEFAULT_ZOOM = 15;
     public static final String MY_PREFERENCE = "MyPrefs" ;
+    public static final String SENSOR_STEP_COUNT = "sensorStepCount";
+    private static final double INCHES_PER_STEP_MEN = 30;
+    private static final double INCHES_PER_STEP_WOMEN = 26;
+    private static final double MILE_PER_INCH = 0.0000157828;
+
+    //Calories Burned Assuming 2200 steps per mile
+    //Use for calculating amount of calories burned
+    private static final double REF_WEIGHT_IN_LBS = 200;
+    private static final double REF_CALORIES_BURNED_1000_STEPS = 50;
+    private static final double REF_STEPS = 1000;
+
 
     //Google Map and location-related
     private GoogleMap mMap;
@@ -58,6 +68,7 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
     private int currentStepCount;
     private int sensorStepCount;
     private TextView tv;
+    private TextView tv1;
 
     //Duration timer
     Handler handler = new Handler();
@@ -65,6 +76,10 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
     private final int REFRESH_RATE = 1000;
     private boolean restart = false;
     TextView durationTV;
+
+    //Distance
+    private double totalDistance;
+    private TextView distanceTV;
 
     //Thread management
     private Runnable startTimer;
@@ -75,6 +90,7 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
     RemoteConnection remoteConnection = null;
 
     private SharedPreferences sharedPref;
+    private SharedPreferences.Editor editor;
 
     class RemoteConnection implements ServiceConnection {
 
@@ -95,11 +111,14 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
         setContentView(R.layout.activity_main_screen);
 
         sharedPref = getSharedPreferences(MY_PREFERENCE, Context.MODE_PRIVATE);
-        sensorStepCount = sharedPref.getInt("sensorCountValue", 0);
-        Log.i("sensor", String.valueOf(sensorStepCount));
+        editor = sharedPref.edit();
+
+        sensorStepCount = sharedPref.getInt(SENSOR_STEP_COUNT, 0);
 
         tv = (TextView) findViewById(R.id.ex);
+        tv1 = (TextView) findViewById(R.id.ex1);
         currentStepCount = 0;
+        totalDistance = 0;
 
         //Setting up location services
         // Construct a GeoDataClient.
@@ -137,10 +156,17 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
 
                 currentStepCount = count - sensorStepCount;
                 tv.setText(String.valueOf(currentStepCount));
-//                Log.i("SENSOR_STEP_COUNT", String.valueOf(sensorStepCount));
-//                Log.i("CURRENT", String.valueOf(currentStepCount));
-//                Log.i("COUNT", String.valueOf(count));
-//                Log.i("BREAK", "________________________");
+
+                totalDistance = currentStepCount * INCHES_PER_STEP_MEN; // in inches
+                totalDistance *= MILE_PER_INCH;
+                distanceTV.setText(String.format("%.2f", totalDistance));
+
+                double calories = calculateCaloriesBurned(100, currentStepCount);
+                tv1.setText(String.format("%.2f", calories));
+
+                //Update the value of step count returned by sensor
+                editor.putInt(SENSOR_STEP_COUNT, count);
+                editor.commit();
 
                 handler.postDelayed(this, REFRESH_RATE);
             }
@@ -166,16 +192,16 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
         workoutButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-            if (workoutStarted) {
-                stopWorkout();
-            } else {
-                startWorkout();
-            }
+                if (workoutStarted) {
+                    stopWorkout();
+                } else {
+                    startWorkout();
+                }
             }
         });
 
         durationTV = (TextView) findViewById(R.id.recordDurationValue);
-
+        distanceTV = (TextView) findViewById(R.id.recordDistanceValue);
 
     }
 
@@ -187,10 +213,11 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
     }
 
     public void startWorkout() {
-        sensorStepCount = sharedPref.getInt("sensorCountValue", 0);
         workoutStarted = true;
         workoutButton.setText(R.string.stopWorkout);
         workoutButton.setBackgroundColor(getResources().getColor(R.color.red_stop_color));
+
+        sensorStepCount = sharedPref.getInt(SENSOR_STEP_COUNT, 0);
 
         //Handling clock UI
         if (!restart) {
@@ -203,7 +230,6 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
 
         //Handling distance UI
         currentStepCount = 0;
-        sensorStepCount = WorkoutService.currentStepCount;
         handler.removeCallbacks(distanceUpdate);
         handler.postDelayed(distanceUpdate, 0);
 
@@ -217,16 +243,18 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
         //Clock UI
         restart = true;
         handler.removeCallbacks(startTimer);
-        durationTV.setText("00:00:00");
+//        durationTV.setText("00:00:00");
 
         //Distance UI
-        SharedPreferences.Editor editor = sharedPref.edit();
-        editor.putInt("sensorStepCount", currentStepCount);
-        Log.i("sensor", String.valueOf(currentStepCount));
-        Log.i("sensor", String.valueOf(sensorStepCount));
-        editor.commit();
         handler.removeCallbacks(distanceUpdate);
-        tv.setText("0");
+    }
+
+    public double calculateCaloriesBurned(double weight, int stepCount) {
+        double result = 0;
+        double caloriesBurnedFor1000Steps = (weight * REF_CALORIES_BURNED_1000_STEPS) / REF_WEIGHT_IN_LBS;
+
+        result = (stepCount * caloriesBurnedFor1000Steps) / REF_STEPS;
+        return result;
     }
 
     private void updateTimer(long time) {
@@ -321,9 +349,13 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
                         if (task.isSuccessful()) {
                             // Set the map's camera position to the current location of the device.
                             mLastKnownLocation = (Location) task.getResult();
-                            mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(
-                                    new LatLng(mLastKnownLocation.getLatitude(),
-                                            mLastKnownLocation.getLongitude()), DEFAULT_ZOOM));
+                            if (mLastKnownLocation != null) {
+                                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(
+                                        new LatLng(mLastKnownLocation.getLatitude(),
+                                                mLastKnownLocation.getLongitude()), DEFAULT_ZOOM));
+                            } else {
+                                Toast.makeText(getApplicationContext(), "Cannot get current location. Please turn on GPS or allow permission request.", Toast.LENGTH_SHORT).show();
+                            }
                         } else {
                             Log.d("TAG", "Current location is null. Using defaults.");
                             Log.e("TAG", "Exception: %s", task.getException());
