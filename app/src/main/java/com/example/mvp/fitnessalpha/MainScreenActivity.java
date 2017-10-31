@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 
 import android.content.ServiceConnection;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Handler;
@@ -38,9 +39,9 @@ import com.google.android.gms.tasks.Task;
 
 public class MainScreenActivity extends FragmentActivity implements OnMapReadyCallback {
 
-    public static final String ACTION_FOO = "com.example.mvp.fitnessalpha.action.FOO";
     public static final int PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION = 10001;
     public static final int DEFAULT_ZOOM = 15;
+    public static final String MY_PREFERENCE = "MyPrefs" ;
 
     //Google Map and location-related
     private GoogleMap mMap;
@@ -60,20 +61,20 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
 
     //Duration timer
     Handler handler = new Handler();
-    long startTime = 0L, timeInMilliseconds = 0L, elapsedTime = 0L;
+    long startTime = 0L, elapsedTime = 0L;
     private final int REFRESH_RATE = 1000;
     private boolean restart = false;
     TextView durationTV;
 
     //Thread management
-    private Thread updateUIThread;
-    private boolean threatStarted = false;
-    private boolean threadRunning = true;
     private Runnable startTimer;
+    private Runnable distanceUpdate;
 
     //Remote Service
     MyAIDLInterface remoteService;
     RemoteConnection remoteConnection = null;
+
+    private SharedPreferences sharedPref;
 
     class RemoteConnection implements ServiceConnection {
 
@@ -93,10 +94,12 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main_screen);
 
+        sharedPref = getSharedPreferences(MY_PREFERENCE, Context.MODE_PRIVATE);
+        sensorStepCount = sharedPref.getInt("sensorCountValue", 0);
+        Log.i("sensor", String.valueOf(sensorStepCount));
 
         tv = (TextView) findViewById(R.id.ex);
         currentStepCount = 0;
-        sensorStepCount = WorkoutService.currentStepCount;
 
         //Setting up location services
         // Construct a GeoDataClient.
@@ -118,7 +121,28 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
             public void run() {
                 elapsedTime = System.currentTimeMillis() - startTime;
                 updateTimer(elapsedTime);
-                handler.postDelayed(this,REFRESH_RATE);
+                handler.postDelayed(this, REFRESH_RATE);
+            }
+        };
+
+        distanceUpdate = new Runnable() {
+            @Override
+            public void run() {
+                int count = 0;
+                try {
+                    count = remoteService.getStepCount();
+                } catch (RemoteException e){
+                    e.printStackTrace();
+                }
+
+                currentStepCount = count - sensorStepCount;
+                tv.setText(String.valueOf(currentStepCount));
+//                Log.i("SENSOR_STEP_COUNT", String.valueOf(sensorStepCount));
+//                Log.i("CURRENT", String.valueOf(currentStepCount));
+//                Log.i("COUNT", String.valueOf(count));
+//                Log.i("BREAK", "________________________");
+
+                handler.postDelayed(this, REFRESH_RATE);
             }
         };
 
@@ -163,42 +187,10 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
     }
 
     public void startWorkout() {
+        sensorStepCount = sharedPref.getInt("sensorCountValue", 0);
         workoutStarted = true;
         workoutButton.setText(R.string.stopWorkout);
         workoutButton.setBackgroundColor(getResources().getColor(R.color.red_stop_color));
-
-        //Update UI every 1 second
-        updateUIThread = new Thread() {
-            @Override
-            public void run() {
-                try {
-                    while (threadRunning) {
-                        Thread.sleep(1000);
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                int count = 0;
-                                try {
-                                    count = remoteService.getStepCount();
-
-                                } catch (RemoteException e){
-                                    e.printStackTrace();
-                                }
-                                currentStepCount = count - sensorStepCount;
-                                tv.setText(String.valueOf(currentStepCount));
-                            }
-                        });
-                    }
-                } catch (InterruptedException e) {
-                }
-            }
-        };
-
-        threadRunning = true;
-        if (!threatStarted) {
-            updateUIThread.start();
-            threatStarted = true;
-        }
 
         //Handling clock UI
         if (!restart) {
@@ -208,6 +200,12 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
         }
         handler.removeCallbacks(startTimer);
         handler.postDelayed(startTimer, 0);
+
+        //Handling distance UI
+        currentStepCount = 0;
+        sensorStepCount = WorkoutService.currentStepCount;
+        handler.removeCallbacks(distanceUpdate);
+        handler.postDelayed(distanceUpdate, 0);
 
     }
 
@@ -221,9 +219,14 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
         handler.removeCallbacks(startTimer);
         durationTV.setText("00:00:00");
 
-        //
-        threadRunning = false;
-        threatStarted = false;
+        //Distance UI
+        SharedPreferences.Editor editor = sharedPref.edit();
+        editor.putInt("sensorStepCount", currentStepCount);
+        Log.i("sensor", String.valueOf(currentStepCount));
+        Log.i("sensor", String.valueOf(sensorStepCount));
+        editor.commit();
+        handler.removeCallbacks(distanceUpdate);
+        tv.setText("0");
     }
 
     private void updateTimer(long time) {

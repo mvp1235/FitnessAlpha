@@ -30,12 +30,6 @@ public class WorkoutService extends Service implements SensorEventListener {
 
         currentStepCount = 0;
 
-        mBinder = new MyAIDLInterface.Stub() {
-            public int getStepCount() {
-                return currentStepCount;
-            }
-        };
-
         //Retrieve an instance of SensorManager to access sensors
         mySensors = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
 
@@ -45,6 +39,12 @@ public class WorkoutService extends Service implements SensorEventListener {
         }
 
         mySensors.registerListener(this, stepCounterSensor, SensorManager.SENSOR_DELAY_NORMAL);
+
+        mBinder = new MyAIDLInterface.Stub() {
+            public int getStepCount() {
+                return currentStepCount;
+            }
+        };
     }
 
     @Override
