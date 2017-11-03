@@ -78,7 +78,7 @@ public class MyContentProvider extends ContentProvider {
 
         @Override
         public void onCreate(SQLiteDatabase sqLiteDatabase) {
-//            db.execSQL(CREATE_DB_TABLE);
+            db.execSQL(CREATE_DB_TABLE);
         }
 
         @Override

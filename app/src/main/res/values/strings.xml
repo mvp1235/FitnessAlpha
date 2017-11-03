@@ -23,4 +23,9 @@
 
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="workoutDetails">Workout Details</string>
+    <string name="avg">AVG</string>
+    <string name="detailUnit">min/mile</string>
+    <string name="max">MAX</string>
+    <string name="min">MIN</string>
 </resources>
