@@ -26,6 +26,8 @@ public class MyContentProvider extends ContentProvider {
     static final int DEVICES = 1;
     static final int DEVICE_ID = 2;
     static final String PROVIDER = "com.example.mvp.fitnessalpha";
+    static final String URL = "content://" + PROVIDER + "/devices";
+    static final Uri URI = Uri.parse(URL);
 
     static final UriMatcher uriMatcher;
 

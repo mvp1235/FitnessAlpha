@@ -39,26 +39,32 @@
 
         <activity
             android:name=".MainScreenActivity"
-            android:configChanges="keyboardHidden|orientation|screenSize"
-            android:label="@string/title_activity_record_workout">
+            android:label="@string/title_activity_record_workout"
+            android:configChanges="orientation|keyboardHidden|screenSize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".UserProfileActivity" />
+        <activity android:name=".UserProfileActivity"
+            android:screenOrientation="portrait"/>
 
         <provider
             android:name=".MyContentProvider"
             android:authorities="com.example.mvp.fitnessalpha"
             android:enabled="true"
-            android:exported="true"></provider>
+            android:exported="true" />
 
         <service
             android:name=".WorkoutService"
-            android:process=".anotherProc"
             android:enabled="true"
-            android:exported="true"></service>
+            android:exported="true"
+            android:process=".anotherProc" />
+
+        <activity android:name=".WorkoutDetailActivity"
+            android:configChanges="orientation|keyboardHidden|screenSize">
+
+        </activity>
     </application>
 
 </manifest>

@@ -1,13 +1,16 @@
 package com.example.mvp.fitnessalpha;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.content.res.Configuration;
 import android.location.Location;
+import android.net.Uri;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.RemoteException;
@@ -38,19 +41,19 @@ import com.google.android.gms.tasks.Task;
 
 public class MainScreenActivity extends FragmentActivity implements OnMapReadyCallback {
 
-    public static final int PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION = 10001;
-    public static final int DEFAULT_ZOOM = 15;
-    public static final String MY_PREFERENCE = "MyPrefs" ;
-    public static final String SENSOR_STEP_COUNT = "sensorStepCount";
-    private static final double INCHES_PER_STEP_MEN = 30;
-    private static final double INCHES_PER_STEP_WOMEN = 26;
-    private static final double MILE_PER_INCH = 0.0000157828;
+    static final int PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION = 10001;
+    static final int DEFAULT_ZOOM = 15;
+    static final String MY_PREFERENCE = "MyPrefs" ;
+    static final String SENSOR_STEP_COUNT = "sensorStepCount";
+    static final double INCHES_PER_STEP_MEN = 30;
+    static final double INCHES_PER_STEP_WOMEN = 26;
+    static final double MILE_PER_INCH = 0.0000157828;
 
     //Calories Burned Assuming 2200 steps per mile
     //Use for calculating amount of calories burned
-    private static final double REF_WEIGHT_IN_LBS = 200;
-    private static final double REF_CALORIES_BURNED_1000_STEPS = 50;
-    private static final double REF_STEPS = 1000;
+    static final double REF_WEIGHT_IN_LBS = 200;
+    static final double REF_CALORIES_BURNED_1000_STEPS = 50;
+    static final double REF_STEPS = 1000;
 
 
     //Google Map and location-related
@@ -105,6 +108,7 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
         }
     }
 
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -113,20 +117,17 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
         sharedPref = getSharedPreferences(MY_PREFERENCE, Context.MODE_PRIVATE);
         editor = sharedPref.edit();
 
+        //If running the app for the very first time, a default user profile will be created
+        if (sharedPref.getBoolean("FIRST_RUN", true)) {
+            populateDefaultDatabase();
+        } else {
+            editor.putBoolean("FIRST_RUN", false);
+        }
+
         sensorStepCount = sharedPref.getInt(SENSOR_STEP_COUNT, 0);
 
-        tv = (TextView) findViewById(R.id.ex);
-        tv1 = (TextView) findViewById(R.id.ex1);
         currentStepCount = 0;
         totalDistance = 0;
-
-        //Setting up location services
-        // Construct a GeoDataClient.
-        mGeoDataClient = Places.getGeoDataClient(this, null);
-        // Construct a PlaceDetectionClient.
-        mPlaceDetectionClient = Places.getPlaceDetectionClient(this, null);
-        // Construct a FusedLocationProviderClient.
-        mFusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
 
         //Initial service
         remoteConnection = new RemoteConnection();
@@ -172,37 +173,61 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
             }
         };
 
-        // Obtain the SupportMapFragment and get notified when the map is ready to be used.
-        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
-                .findFragmentById(R.id.map);
-        mapFragment.getMapAsync(this);
+        Configuration config = getResources().getConfiguration();
+        if (config.orientation == Configuration.ORIENTATION_PORTRAIT) {
+            tv = (TextView) findViewById(R.id.ex);
+            tv1 = (TextView) findViewById(R.id.ex1);
 
-        //Setting up user profile button
-        ImageButton profileBtn = (ImageButton) findViewById(R.id.userProfileBtn);
-        profileBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent intent = new Intent(MainScreenActivity.this, UserProfileActivity.class);
-                startActivity(intent);
-            }
-        });
+            //Setting up location services
+            // Construct a GeoDataClient.
+            mGeoDataClient = Places.getGeoDataClient(this, null);
+            // Construct a PlaceDetectionClient.
+            mPlaceDetectionClient = Places.getPlaceDetectionClient(this, null);
+            // Construct a FusedLocationProviderClient.
+            mFusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
 
-        //Setting up start workout button
-        workoutButton = (Button) findViewById(R.id.startStopBtn);
-        workoutButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if (workoutStarted) {
-                    stopWorkout();
-                } else {
-                    startWorkout();
+            // Obtain the SupportMapFragment and get notified when the map is ready to be used.
+            SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
+                    .findFragmentById(R.id.map);
+            mapFragment.getMapAsync(this);
+
+            //Setting up user profile button
+            ImageButton profileBtn = (ImageButton) findViewById(R.id.userProfileBtn);
+            profileBtn.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    Intent intent = new Intent(MainScreenActivity.this, UserProfileActivity.class);
+                    startActivity(intent);
                 }
-            }
-        });
+            });
 
-        durationTV = (TextView) findViewById(R.id.recordDurationValue);
-        distanceTV = (TextView) findViewById(R.id.recordDistanceValue);
+            //Setting up start workout button
+            workoutButton = (Button) findViewById(R.id.startStopBtn);
+            workoutButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    if (workoutStarted) {
+                        stopWorkout();
+                    } else {
+                        startWorkout();
+                    }
+                }
+            });
 
+            durationTV = (TextView) findViewById(R.id.recordDurationValue);
+            distanceTV = (TextView) findViewById(R.id.recordDistanceValue);
+        }
+
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+
+        if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            Intent intent = new Intent(MainScreenActivity.this, WorkoutDetailActivity.class);
+            startActivity(intent);
+        }
     }
 
     @Override
@@ -243,7 +268,7 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
         //Clock UI
         restart = true;
         handler.removeCallbacks(startTimer);
-//        durationTV.setText("00:00:00");
+        durationTV.setText("00:00:00");
 
         //Distance UI
         handler.removeCallbacks(distanceUpdate);
@@ -391,5 +416,26 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
         getDeviceLocation();
     }
 
+    /**
+     * Insert a new user database, which initialize every values to 0, and a default name and weight
+     */
+    public void populateDefaultDatabase() {
+        ContentValues contentValues = new ContentValues();
+        contentValues.put(MyContentProvider._ID, "1");
+        contentValues.put(MyContentProvider.NAME, "John Doe");
+        contentValues.put(MyContentProvider.GENDER, "Male");
+        contentValues.put(MyContentProvider.WEIGHT, 140);
+        contentValues.put(MyContentProvider.AVG_DISTANCE, 0);
+        contentValues.put(MyContentProvider.AVG_TIME, "0 sec");
+        contentValues.put(MyContentProvider.AVG_WORKOUTS, 0);
+        contentValues.put(MyContentProvider.AVG_CALORIES_BURNED, 0);
+        contentValues.put(MyContentProvider.ALL_TIME_DISTANCE, 0);
+        contentValues.put(MyContentProvider.ALL_TIME_TIME, 0);
+        contentValues.put(MyContentProvider.ALL_TIME_WORKOUTS, 0);
+        contentValues.put(MyContentProvider.ALL_TIME_CALORIES_BURNED, 0);
+
+        getContentResolver().insert(MyContentProvider.URI, contentValues);
+
+    }
 
 }
