@@ -30,21 +30,21 @@ import android.widget.TextView;
         allTimeWorkoutsTV = (TextView) findViewById(R.id.allWorkoutsValue);
         allTimeCaloriesBurnedTV = (TextView) findViewById(R.id.allCaloriesBurnedValue);
 
-        Cursor c = managedQuery(MyContentProvider.URI, null, null, null, MyContentProvider._ID);
+        Cursor c = managedQuery(MyContentProvider.CONTENT_URI, null, null, null, UserTable._ID);
 
         if (c.moveToFirst()) {
             do {
-                String name = c.getString(c.getColumnIndex(MyContentProvider.NAME));
-                String gender = c.getString(c.getColumnIndex(MyContentProvider.GENDER));
-                double weight = c.getDouble(c.getColumnIndex(MyContentProvider.WEIGHT));
-                double avgDistance = c.getDouble(c.getColumnIndex(MyContentProvider.AVG_DISTANCE));
-                String avgTime = c.getString(c.getColumnIndex(MyContentProvider.AVG_TIME));
-                int avgWorkouts = c.getInt(c.getColumnIndex(MyContentProvider.AVG_WORKOUTS));
-                double avgCaloriesBurned = c.getDouble(c.getColumnIndex(MyContentProvider.AVG_CALORIES_BURNED));
-                double allTimeDistance = c.getDouble(c.getColumnIndex(MyContentProvider.ALL_TIME_DISTANCE));
-                String allTimeTime = c.getString(c.getColumnIndex(MyContentProvider.ALL_TIME_TIME));
-                int allTimeWorkouts = c.getInt(c.getColumnIndex(MyContentProvider.ALL_TIME_WORKOUTS));
-                double allTimeCaloriesBurned = c.getDouble(c.getColumnIndex(MyContentProvider.ALL_TIME_CALORIES_BURNED));
+                String name = c.getString(c.getColumnIndex(UserTable.NAME));
+                String gender = c.getString(c.getColumnIndex(UserTable.GENDER));
+                double weight = c.getDouble(c.getColumnIndex(UserTable.WEIGHT));
+                double avgDistance = c.getDouble(c.getColumnIndex(UserTable.AVG_DISTANCE));
+                String avgTime = c.getString(c.getColumnIndex(UserTable.AVG_TIME));
+                int avgWorkouts = c.getInt(c.getColumnIndex(UserTable.AVG_WORKOUTS));
+                double avgCaloriesBurned = c.getDouble(c.getColumnIndex(UserTable.AVG_CALORIES_BURNED));
+                double allTimeDistance = c.getDouble(c.getColumnIndex(UserTable.ALL_TIME_DISTANCE));
+                String allTimeTime = c.getString(c.getColumnIndex(UserTable.ALL_TIME_TIME));
+                int allTimeWorkouts = c.getInt(c.getColumnIndex(UserTable.ALL_TIME_WORKOUTS));
+                double allTimeCaloriesBurned = c.getDouble(c.getColumnIndex(UserTable.ALL_TIME_CALORIES_BURNED));
 
                 userNameTV.setText(name);
                 genderTV.setText(gender);

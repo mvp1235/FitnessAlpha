@@ -421,21 +421,21 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
      */
     public void populateDefaultDatabase() {
         ContentValues contentValues = new ContentValues();
-        contentValues.put(MyContentProvider._ID, "1");
-        contentValues.put(MyContentProvider.NAME, "John Doe");
-        contentValues.put(MyContentProvider.GENDER, "Male");
-        contentValues.put(MyContentProvider.WEIGHT, 140);
-        contentValues.put(MyContentProvider.AVG_DISTANCE, 0);
-        contentValues.put(MyContentProvider.AVG_TIME, "0 sec");
-        contentValues.put(MyContentProvider.AVG_WORKOUTS, 0);
-        contentValues.put(MyContentProvider.AVG_CALORIES_BURNED, 0);
-        contentValues.put(MyContentProvider.ALL_TIME_DISTANCE, 0);
-        contentValues.put(MyContentProvider.ALL_TIME_TIME, 0);
-        contentValues.put(MyContentProvider.ALL_TIME_WORKOUTS, 0);
-        contentValues.put(MyContentProvider.ALL_TIME_CALORIES_BURNED, 0);
+        contentValues.put(UserTable.NAME, "John Doe");
+        contentValues.put(UserTable.GENDER, "Male");
+        contentValues.put(UserTable.WEIGHT, 140);
+        contentValues.put(UserTable.AVG_DISTANCE, 0);
+        contentValues.put(UserTable.AVG_TIME, "0 sec");
+        contentValues.put(UserTable.AVG_WORKOUTS, 0);
+        contentValues.put(UserTable.AVG_CALORIES_BURNED, 0);
+        contentValues.put(UserTable.ALL_TIME_DISTANCE, 0);
+        contentValues.put(UserTable.ALL_TIME_TIME, "0 sec");
+        contentValues.put(UserTable.ALL_TIME_WORKOUTS, 0);
+        contentValues.put(UserTable.ALL_TIME_CALORIES_BURNED, 0);
 
-        getContentResolver().insert(MyContentProvider.URI, contentValues);
+        getContentResolver().insert(MyContentProvider.CONTENT_URI, contentValues);
 
     }
 
 }
+

@@ -15,202 +15,187 @@ import android.net.Uri;
 import android.text.TextUtils;
 import android.util.Log;
 
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Scanner;
 
 import static android.provider.CalendarContract.CalendarCache.URI;
 
 public class MyContentProvider extends ContentProvider {
 
-    static final String TAG = MyContentProvider.class.getSimpleName();
-    static final int DEVICES = 1;
-    static final int DEVICE_ID = 2;
-    static final String PROVIDER = "com.example.mvp.fitnessalpha";
-    static final String URL = "content://" + PROVIDER + "/devices";
-    static final Uri URI = Uri.parse(URL);
+    private DBHelper database;
 
-    static final UriMatcher uriMatcher;
+    // used for the UriMacher
+    private static final int USERS = 10;
+    private static final int USER_ID = 20;
 
+    private static final String AUTHORITY = "com.example.mvp.fitnessalpha";
+    private static final String BASE_PATH = "users";
+    public static final Uri CONTENT_URI = Uri.parse("content://" + AUTHORITY
+            + "/" + BASE_PATH);
+
+    public static final String CONTENT_TYPE = ContentResolver.CURSOR_DIR_BASE_TYPE
+            + "/users";
+    public static final String CONTENT_ITEM_TYPE = ContentResolver.CURSOR_ITEM_BASE_TYPE
+            + "/user";
+
+    private static final UriMatcher sURIMatcher = new UriMatcher(
+            UriMatcher.NO_MATCH);
     static {
-        uriMatcher = new UriMatcher(UriMatcher.NO_MATCH);
-        uriMatcher.addURI(PROVIDER, "devices", DEVICES);
-        uriMatcher.addURI(PROVIDER, "devices/#", DEVICE_ID);
-    }
-
-    Context mContext;
-    private static HashMap<String, String> DEVICES_PROJECTION_MAP;
-
-    static final String _ID = "_id";
-    static final String NAME = "name";
-    static final String GENDER = "gender";
-    static final String WEIGHT = "weight";
-    static final String AVG_DISTANCE = "avgDistannce";
-    static final String AVG_TIME = "avgTime";
-    static final String AVG_WORKOUTS = "avgWorkouts";
-    static final String AVG_CALORIES_BURNED = "avgCaloriesBurned";
-    static final String ALL_TIME_DISTANCE = "allTimeDistannce";
-    static final String ALL_TIME_TIME = "allTimeTime";
-    static final String ALL_TIME_WORKOUTS = "allTimeWorkouts";
-    static final String ALL_TIME_CALORIES_BURNED = "allTimeCaloriesBurned";
-
-    static private SQLiteDatabase db;
-    static final String DATABASE_NAME = "myprovider";
-    static final String TABLE_NAME = "user";
-    static final int DATABASE_VERSION = 1;
-    static final String CREATE_DB_TABLE =
-            "CREATE TABLE " + TABLE_NAME
-            + " _id INTEGER PRIMARY KEY AUTOINCREMENT, "
-            + " name TEXT NOT NULL, "
-            + " gender TEXT NOT NULL, "
-            + " weight DOUBLE NOT NULL, "
-            + " avgDistannce DOUBLE, "
-            + " avgTime TEXT, "
-            + " avgWorkouts INTEGER, "
-            + " avgCaloriesBurned DOUBLE, "
-            + " allTimeDistannce DOUBLE, "
-            + " allTimeTime TEXT, "
-            + " allTimeWorkouts INTEGER, "
-            + " allTimeCaloriesBurned DOUBLE);";
-
-    private static class DB extends SQLiteOpenHelper {
-
-        DB(Context context) {
-            super(context, DATABASE_NAME, null, DATABASE_VERSION);
-        }
-
-        @Override
-        public void onCreate(SQLiteDatabase sqLiteDatabase) {
-            db.execSQL(CREATE_DB_TABLE);
-        }
-
-        @Override
-        public void onUpgrade(SQLiteDatabase sqLiteDatabase, int oldVersion, int newVersion) {
-            db.execSQL("DROP TABLE IF EXISTS " + TABLE_NAME);
-            onCreate(db);
-        }
-    }
-
-    public MyContentProvider() {
-    }
-
-    private void notifyChange(Uri uri) {
-        ContentResolver resolver = mContext.getContentResolver();
-        if (resolver != null) {
-            resolver.notifyChange(uri, null);
-        }
-    }
-
-    private int getMatchedID(Uri uri) {
-        int matchedID = uriMatcher.match(uri);
-        if (!(matchedID == DEVICES || matchedID == DEVICE_ID)) {
-            throw new IllegalArgumentException("Unsupported URI: " + uri);
-        }
-        return matchedID;
-    }
-
-    private String getIdString(Uri uri) {
-        return (_ID + " = " + uri.getPathSegments().get(1));
-    }
-
-    private String getSelectionWithID(Uri uri, String selection) {
-        String sel_str = getIdString(uri);
-        if (!TextUtils.isEmpty(selection)) {
-            sel_str += " AND (" + selection + ")";
-        }
-        return sel_str;
-    }
-
-    @Override
-    public int delete(Uri uri, String selection, String[] selectionArgs) {
-        Log.v(TAG, "content provider: delete()");
-
-        int count = 0;
-
-        String sel_str = (getMatchedID(uri) == DEVICE_ID) ? getSelectionWithID(uri, selection) : selection;
-        count = db.delete(TABLE_NAME, sel_str, selectionArgs);
-        notifyChange(uri);
-        return count;
-    }
-
-    @Override
-    public String getType(Uri uri) {
-        Log.v(TAG, "content provider: getType()");
-
-        if (getMatchedID(uri) == DEVICES) {
-            return "vnd.android.cursor.dir/vnd.mvp.fitnessalpha";
-        } else {
-            return "vnd.android.cursor.item/vnd.mvp.fitnessalpha";
-        }
-    }
-
-    @Override
-    public Uri insert(Uri uri, ContentValues values) {
-        Log.v(TAG, "content provider: insert()");
-
-        long row = db.insert(TABLE_NAME, "", values);
-
-        if (row > 0) {
-            Uri _uri = ContentUris.withAppendedId(URI, row);
-            notifyChange(_uri);
-            return _uri;
-        }
-        throw new SQLException("Failed to add a record into " + uri);
+        sURIMatcher.addURI(AUTHORITY, BASE_PATH, USERS);
+        sURIMatcher.addURI(AUTHORITY, BASE_PATH + "/#", USER_ID);
     }
 
     @Override
     public boolean onCreate() {
-        Log.v(TAG, "content provider: onCreate()");
-
-        mContext = getContext();
-        if (mContext == null) {
-            Log.e(TAG, "Fail to retrieve the context");
-            return false;
-        }
-        DB dbHelper = new DB(mContext);
-        db = dbHelper.getWritableDatabase();
-        if (db == null) {
-            Log.e(TAG, "Failed to create a writable database");
-            return false;
-        }
-        return true;
+        database = new DBHelper(getContext());
+        return false;
     }
 
     @Override
     public Cursor query(Uri uri, String[] projection, String selection,
                         String[] selectionArgs, String sortOrder) {
-        Log.v(TAG, "content provider: query()");
 
-        SQLiteQueryBuilder sqLiteQueryBuilder = new SQLiteQueryBuilder();
-        sqLiteQueryBuilder.setTables(TABLE_NAME);
+        // Uisng SQLiteQueryBuilder instead of query() method
+        SQLiteQueryBuilder queryBuilder = new SQLiteQueryBuilder();
 
-        if (getMatchedID(uri) == DEVICES) {
-            sqLiteQueryBuilder.setProjectionMap(DEVICES_PROJECTION_MAP);
-        } else {
-            sqLiteQueryBuilder.appendWhere(getIdString(uri));
+        // check if the caller has requested a column which does not exists
+        checkColumns(projection);
+
+        // Set the table
+        queryBuilder.setTables(UserTable.TABLE_NAME);
+
+        int uriType = sURIMatcher.match(uri);
+        switch (uriType) {
+            case USERS:
+                break;
+            case USER_ID:
+                // adding the ID to the original query
+                queryBuilder.appendWhere(UserTable._ID + "="
+                        + uri.getLastPathSegment());
+                break;
+            default:
+                throw new IllegalArgumentException("Unknown URI: " + uri);
         }
 
-        if (sortOrder == null || sortOrder == "") {
-            sortOrder = NAME;
+        SQLiteDatabase db = database.getWritableDatabase();
+        Cursor cursor = queryBuilder.query(db, projection, selection,
+                selectionArgs, null, null, sortOrder);
+        // make sure that potential listeners are getting notified
+        cursor.setNotificationUri(getContext().getContentResolver(), uri);
+
+        return cursor;
+    }
+
+    @Override
+    public String getType(Uri uri) {
+        return null;
+    }
+
+    @Override
+    public Uri insert(Uri uri, ContentValues values) {
+        int uriType = sURIMatcher.match(uri);
+        SQLiteDatabase sqlDB = database.getWritableDatabase();
+        long id = 0;
+        switch (uriType) {
+            case USERS:
+                id = sqlDB.insert(UserTable.TABLE_NAME, null, values);
+                break;
+            default:
+                throw new IllegalArgumentException("Unknown URI: " + uri);
         }
+        getContext().getContentResolver().notifyChange(uri, null);
+        return Uri.parse(BASE_PATH + "/" + id);
+    }
 
-        Cursor c = sqLiteQueryBuilder.query(db, projection, selection, selectionArgs, null, null, sortOrder);
-
-        c.setNotificationUri(mContext.getContentResolver(), uri);
-        return c;
+    @Override
+    public int delete(Uri uri, String selection, String[] selectionArgs) {
+        int uriType = sURIMatcher.match(uri);
+        SQLiteDatabase sqlDB = database.getWritableDatabase();
+        int rowsDeleted = 0;
+        switch (uriType) {
+            case USERS:
+                rowsDeleted = sqlDB.delete(UserTable.TABLE_NAME, selection,
+                        selectionArgs);
+                break;
+            case USER_ID:
+                String id = uri.getLastPathSegment();
+                if (TextUtils.isEmpty(selection)) {
+                    rowsDeleted = sqlDB.delete(
+                            UserTable.TABLE_NAME,
+                            UserTable._ID + "=" + id,
+                            null);
+                } else {
+                    rowsDeleted = sqlDB.delete(
+                            UserTable.TABLE_NAME,
+                            UserTable._ID + "=" + id
+                                    + " and " + selection,
+                            selectionArgs);
+                }
+                break;
+            default:
+                throw new IllegalArgumentException("Unknown URI: " + uri);
+        }
+        getContext().getContentResolver().notifyChange(uri, null);
+        return rowsDeleted;
     }
 
     @Override
     public int update(Uri uri, ContentValues values, String selection,
                       String[] selectionArgs) {
-        Log.v(TAG, "content provider: update()");
 
-        int count = 0;
-        int matchedID = getMatchedID(uri);
+        int uriType = sURIMatcher.match(uri);
+        SQLiteDatabase sqlDB = database.getWritableDatabase();
+        int rowsUpdated = 0;
+        switch (uriType) {
+            case USERS:
+                rowsUpdated = sqlDB.update(UserTable.TABLE_NAME,
+                        values,
+                        selection,
+                        selectionArgs);
+                break;
+            case USER_ID:
+                String id = uri.getLastPathSegment();
+                if (TextUtils.isEmpty(selection)) {
+                    rowsUpdated = sqlDB.update(UserTable.TABLE_NAME,
+                            values,
+                            UserTable._ID + "=" + id,
+                            null);
+                } else {
+                    rowsUpdated = sqlDB.update(UserTable.TABLE_NAME,
+                            values,
+                            UserTable._ID+ "=" + id
+                                    + " and "
+                                    + selection,
+                            selectionArgs);
+                }
+                break;
+            default:
+                throw new IllegalArgumentException("Unknown URI: " + uri);
+        }
+        getContext().getContentResolver().notifyChange(uri, null);
+        return rowsUpdated;
+    }
 
-        String sel_str = (matchedID == DEVICE_ID) ? getSelectionWithID(uri, selection) : selection;
 
-        count = db.update(TABLE_NAME, values, sel_str, selectionArgs);
-        notifyChange(uri);
-        return count;
+    private void checkColumns(String[] projection) {
+        String[] available = { UserTable.NAME,
+                UserTable.GENDER, UserTable.WEIGHT,
+                UserTable.AVG_DISTANCE, UserTable.AVG_TIME,
+                UserTable.AVG_WORKOUTS, UserTable.AVG_CALORIES_BURNED,
+                UserTable.ALL_TIME_DISTANCE, UserTable.ALL_TIME_TIME,
+                UserTable.ALL_TIME_WORKOUTS, UserTable.ALL_TIME_CALORIES_BURNED};
+        if (projection != null) {
+            HashSet<String> requestedColumns = new HashSet<String>(
+                    Arrays.asList(projection));
+            HashSet<String> availableColumns = new HashSet<String>(
+                    Arrays.asList(available));
+            // check if all columns which are requested are available
+            if (!availableColumns.containsAll(requestedColumns)) {
+                throw new IllegalArgumentException(
+                        "Unknown columns in projection");
+            }
+        }
     }
 }
