@@ -125,8 +125,8 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
         //If running the app for the very first time, a default user profile will be created
         if (sharedPref.getBoolean("FIRST_RUN", true)) {
             populateDefaultDatabase();
-        } else {
             editor.putBoolean("FIRST_RUN", false);
+            editor.commit();
         }
 
         sensorStepCount = sharedPref.getInt(SENSOR_STEP_COUNT, 0);
@@ -176,10 +176,11 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
 
                 ContentValues contentValues = new ContentValues();
                 contentValues.put(UserTable.ALL_TIME_DISTANCE, currentAllTimeDistance + distanceToBeAdded);
-                getContentResolver().update(MyContentProvider.CONTENT_URI, contentValues, null, null);
+                int c = getContentResolver().update(MyContentProvider.CONTENT_URI, contentValues, "_id = ?", new String[] {"1"});
 
                 Log.i("TEST", "DATABASE: " + currentAllTimeDistance);
                 Log.i("TEST", "CURRENT: " + totalDistance);
+                Log.i("TEST", "UPDATED " + c);
 
                 double calories = calculateCaloriesBurned(100, currentStepCount);
                 tv1.setText(String.format("%.2f", calories));
@@ -250,43 +251,43 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
      * @return the value of the specified column name
      */
     public String getDatabaseColumnValue(String columnName) {
-        Cursor c = managedQuery(MyContentProvider.CONTENT_URI, null, null, null, UserTable._ID);
+        Cursor c = getContentResolver().query(MyContentProvider.CONTENT_URI, null, "_id = ?", new String[] {"1"}, UserTable._ID);
 
+        Log.i("TEST1", String.valueOf(c.getCount()));
         if (c.moveToFirst()) {
             do {
-                String name = c.getString(c.getColumnIndex(UserTable.NAME));
-                String gender = c.getString(c.getColumnIndex(UserTable.GENDER));
-                double weight = c.getDouble(c.getColumnIndex(UserTable.WEIGHT));
-                double avgDistance = c.getDouble(c.getColumnIndex(UserTable.AVG_DISTANCE));
-                String avgTime = c.getString(c.getColumnIndex(UserTable.AVG_TIME));
-                int avgWorkouts = c.getInt(c.getColumnIndex(UserTable.AVG_WORKOUTS));
-                double avgCaloriesBurned = c.getDouble(c.getColumnIndex(UserTable.AVG_CALORIES_BURNED));
-                double allTimeDistance = c.getDouble(c.getColumnIndex(UserTable.ALL_TIME_DISTANCE));
-                String allTimeTime = c.getString(c.getColumnIndex(UserTable.ALL_TIME_TIME));
-                int allTimeWorkouts = c.getInt(c.getColumnIndex(UserTable.ALL_TIME_WORKOUTS));
-                double allTimeCaloriesBurned = c.getDouble(c.getColumnIndex(UserTable.ALL_TIME_CALORIES_BURNED));
-
                 if (columnName.equalsIgnoreCase(UserTable.NAME)) {
+                    String name = c.getString(c.getColumnIndex(UserTable.NAME));
                     return name;
                 } else if (columnName.equalsIgnoreCase(UserTable.GENDER)) {
+                    String gender = c.getString(c.getColumnIndex(UserTable.GENDER));
                     return gender;
                 } else if (columnName.equalsIgnoreCase(UserTable.WEIGHT)) {
+                    double weight = c.getDouble(c.getColumnIndex(UserTable.WEIGHT));
                     return String.valueOf(weight);
                 } else if (columnName.equalsIgnoreCase(UserTable.AVG_DISTANCE)) {
+                    double avgDistance = c.getDouble(c.getColumnIndex(UserTable.AVG_DISTANCE));
                     return String.valueOf(avgDistance);
                 } else if (columnName.equalsIgnoreCase(UserTable.AVG_TIME)) {
+                    String avgTime = c.getString(c.getColumnIndex(UserTable.AVG_TIME));
                     return avgTime;
                 } else if (columnName.equalsIgnoreCase(UserTable.AVG_WORKOUTS)) {
+                    int avgWorkouts = c.getInt(c.getColumnIndex(UserTable.AVG_WORKOUTS));
                     return String.valueOf(avgWorkouts);
                 } else if (columnName.equalsIgnoreCase(UserTable.AVG_CALORIES_BURNED)) {
+                    double avgCaloriesBurned = c.getDouble(c.getColumnIndex(UserTable.AVG_CALORIES_BURNED));
                     return String.valueOf(avgCaloriesBurned);
                 } else if (columnName.equalsIgnoreCase(UserTable.ALL_TIME_DISTANCE)) {
+                    double allTimeDistance = c.getDouble(c.getColumnIndex(UserTable.ALL_TIME_DISTANCE));
                     return String.valueOf(allTimeDistance);
                 } else if (columnName.equalsIgnoreCase(UserTable.ALL_TIME_TIME)) {
+                    String allTimeTime = c.getString(c.getColumnIndex(UserTable.ALL_TIME_TIME));
                     return allTimeTime;
                 } else if (columnName.equalsIgnoreCase(UserTable.ALL_TIME_WORKOUTS)) {
+                    int allTimeWorkouts = c.getInt(c.getColumnIndex(UserTable.ALL_TIME_WORKOUTS));
                     return String.valueOf(allTimeWorkouts);
                 } else if (columnName.equalsIgnoreCase(UserTable.ALL_TIME_CALORIES_BURNED)) {
+                    double allTimeCaloriesBurned = c.getDouble(c.getColumnIndex(UserTable.ALL_TIME_CALORIES_BURNED));
                     return String.valueOf(allTimeCaloriesBurned);
                 }
 

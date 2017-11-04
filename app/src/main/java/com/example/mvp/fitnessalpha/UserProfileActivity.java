@@ -30,7 +30,7 @@ import android.widget.TextView;
         allTimeWorkoutsTV = (TextView) findViewById(R.id.allWorkoutsValue);
         allTimeCaloriesBurnedTV = (TextView) findViewById(R.id.allCaloriesBurnedValue);
 
-        Cursor c = managedQuery(MyContentProvider.CONTENT_URI, null, null, null, UserTable._ID);
+        Cursor c = getContentResolver().query(MyContentProvider.CONTENT_URI, null, "_id = ?", new String[] {"1"}, UserTable._ID);
 
         if (c.moveToFirst()) {
             do {
@@ -57,22 +57,9 @@ import android.widget.TextView;
                 allTimeTimeTV.setText(allTimeTime);
                 allTimeWorkoutsTV.setText(String.valueOf(allTimeWorkouts));
                 allTimeCaloriesBurnedTV.setText(String.valueOf(allTimeCaloriesBurned));
-
+                break;
 
             } while (c.moveToNext());
         }
     }
 }
-//            "CREATE TABLE " + TABLE_NAME
-//                    + " _id INTEGER PRIMARY KEY AUTOINCREMENT, "
-//                    + " name TEXT NOT NULL, "
-//                    + " gender TEXT NOT NULL, "
-//                    + " weight DOUBLE NOT NULL, "
-//                    + " avgDistannce DOUBLE, "
-//                    + " avgTime TEXT, "
-//                    + " avgWorkouts INTEGER, "
-//                    + " avgCaloriesBurned DOUBLE, "
-//                    + " allTimeDistannce DOUBLE, "
-//                    + " allTimeTime TEXT, "
-//                    + " allTimeWorkouts INTEGER, "
-//                    + " allTimeCaloriesBurned DOUBLE);";

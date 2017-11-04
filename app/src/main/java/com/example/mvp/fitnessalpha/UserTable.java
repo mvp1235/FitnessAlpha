@@ -24,7 +24,7 @@ public class UserTable {
     static final String TABLE_NAME = "user";
     static final String CREATE_DB_TABLE =
             "CREATE TABLE " + TABLE_NAME
-                    + "( _id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                    + "(_id INTEGER PRIMARY KEY AUTOINCREMENT, "
                     + "name TEXT NOT NULL, "
                     + "gender TEXT NOT NULL, "
                     + "weight DOUBLE NOT NULL, "
