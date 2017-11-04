@@ -141,6 +141,7 @@ public class MyContentProvider extends ContentProvider {
         return rowsDeleted;
     }
 
+
     @Override
     public int update(Uri uri, ContentValues values, String selection,
                       String[] selectionArgs) {

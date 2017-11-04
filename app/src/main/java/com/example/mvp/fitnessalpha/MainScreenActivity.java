@@ -9,6 +9,7 @@ import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
+import android.database.Cursor;
 import android.location.Location;
 import android.net.Uri;
 import android.os.Handler;
@@ -84,6 +85,10 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
     private double totalDistance;
     private TextView distanceTV;
 
+    //Variables for updating database
+    private double initialAllTimeDistance = 0;
+    private int secondsPassed = 0;
+
     //Thread management
     private Runnable startTimer;
     private Runnable distanceUpdate;
@@ -158,9 +163,23 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
                 currentStepCount = count - sensorStepCount;
                 tv.setText(String.valueOf(currentStepCount));
 
+
                 totalDistance = currentStepCount * INCHES_PER_STEP_MEN; // in inches
                 totalDistance *= MILE_PER_INCH;
                 distanceTV.setText(String.format("%.2f", totalDistance));
+
+                double currentAllTimeDistance = Double.parseDouble(getDatabaseColumnValue(UserTable.ALL_TIME_DISTANCE));
+
+                Log.i("TEST", "INITIAL: " + initialAllTimeDistance);
+                initialAllTimeDistance = totalDistance;
+                double distanceToBeAdded = totalDistance - initialAllTimeDistance;
+
+                ContentValues contentValues = new ContentValues();
+                contentValues.put(UserTable.ALL_TIME_DISTANCE, currentAllTimeDistance + distanceToBeAdded);
+                getContentResolver().update(MyContentProvider.CONTENT_URI, contentValues, null, null);
+
+                Log.i("TEST", "DATABASE: " + currentAllTimeDistance);
+                Log.i("TEST", "CURRENT: " + totalDistance);
 
                 double calories = calculateCaloriesBurned(100, currentStepCount);
                 tv1.setText(String.format("%.2f", calories));
@@ -173,51 +192,107 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
             }
         };
 
-        Configuration config = getResources().getConfiguration();
-        if (config.orientation == Configuration.ORIENTATION_PORTRAIT) {
-            tv = (TextView) findViewById(R.id.ex);
-            tv1 = (TextView) findViewById(R.id.ex1);
 
-            //Setting up location services
-            // Construct a GeoDataClient.
-            mGeoDataClient = Places.getGeoDataClient(this, null);
-            // Construct a PlaceDetectionClient.
-            mPlaceDetectionClient = Places.getPlaceDetectionClient(this, null);
-            // Construct a FusedLocationProviderClient.
-            mFusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
+        tv = (TextView) findViewById(R.id.ex);
+        tv1 = (TextView) findViewById(R.id.ex1);
 
-            // Obtain the SupportMapFragment and get notified when the map is ready to be used.
-            SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
-                    .findFragmentById(R.id.map);
-            mapFragment.getMapAsync(this);
+        //Setting up location services
+        // Construct a GeoDataClient.
+        mGeoDataClient = Places.getGeoDataClient(this, null);
+        // Construct a PlaceDetectionClient.
+        mPlaceDetectionClient = Places.getPlaceDetectionClient(this, null);
+        // Construct a FusedLocationProviderClient.
+        mFusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
 
-            //Setting up user profile button
-            ImageButton profileBtn = (ImageButton) findViewById(R.id.userProfileBtn);
-            profileBtn.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    Intent intent = new Intent(MainScreenActivity.this, UserProfileActivity.class);
-                    startActivity(intent);
+        // Obtain the SupportMapFragment and get notified when the map is ready to be used.
+        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
+                .findFragmentById(R.id.map);
+        mapFragment.getMapAsync(this);
+
+        //Setting up user profile button
+        ImageButton profileBtn = (ImageButton) findViewById(R.id.userProfileBtn);
+        profileBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(MainScreenActivity.this, UserProfileActivity.class);
+                startActivity(intent);
+            }
+        });
+
+        //Setting up start workout button
+        workoutButton = (Button) findViewById(R.id.startStopBtn);
+        workoutButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (workoutStarted) {
+                    stopWorkout();
+                } else {
+                    startWorkout();
                 }
-            });
+            }
+        });
 
-            //Setting up start workout button
-            workoutButton = (Button) findViewById(R.id.startStopBtn);
-            workoutButton.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    if (workoutStarted) {
-                        stopWorkout();
-                    } else {
-                        startWorkout();
-                    }
+        durationTV = (TextView) findViewById(R.id.recordDurationValue);
+        distanceTV = (TextView) findViewById(R.id.recordDistanceValue);
+
+
+    }
+
+    @Override
+    public void onBackPressed() {
+        //do nothing, preventing users from exiting the activity with back button and stop the workout session
+        //pressing home will not affect
+    }
+
+    /**
+     * Return value of a certain column in the user table
+     * @param columnName the column to be return
+     * @return the value of the specified column name
+     */
+    public String getDatabaseColumnValue(String columnName) {
+        Cursor c = managedQuery(MyContentProvider.CONTENT_URI, null, null, null, UserTable._ID);
+
+        if (c.moveToFirst()) {
+            do {
+                String name = c.getString(c.getColumnIndex(UserTable.NAME));
+                String gender = c.getString(c.getColumnIndex(UserTable.GENDER));
+                double weight = c.getDouble(c.getColumnIndex(UserTable.WEIGHT));
+                double avgDistance = c.getDouble(c.getColumnIndex(UserTable.AVG_DISTANCE));
+                String avgTime = c.getString(c.getColumnIndex(UserTable.AVG_TIME));
+                int avgWorkouts = c.getInt(c.getColumnIndex(UserTable.AVG_WORKOUTS));
+                double avgCaloriesBurned = c.getDouble(c.getColumnIndex(UserTable.AVG_CALORIES_BURNED));
+                double allTimeDistance = c.getDouble(c.getColumnIndex(UserTable.ALL_TIME_DISTANCE));
+                String allTimeTime = c.getString(c.getColumnIndex(UserTable.ALL_TIME_TIME));
+                int allTimeWorkouts = c.getInt(c.getColumnIndex(UserTable.ALL_TIME_WORKOUTS));
+                double allTimeCaloriesBurned = c.getDouble(c.getColumnIndex(UserTable.ALL_TIME_CALORIES_BURNED));
+
+                if (columnName.equalsIgnoreCase(UserTable.NAME)) {
+                    return name;
+                } else if (columnName.equalsIgnoreCase(UserTable.GENDER)) {
+                    return gender;
+                } else if (columnName.equalsIgnoreCase(UserTable.WEIGHT)) {
+                    return String.valueOf(weight);
+                } else if (columnName.equalsIgnoreCase(UserTable.AVG_DISTANCE)) {
+                    return String.valueOf(avgDistance);
+                } else if (columnName.equalsIgnoreCase(UserTable.AVG_TIME)) {
+                    return avgTime;
+                } else if (columnName.equalsIgnoreCase(UserTable.AVG_WORKOUTS)) {
+                    return String.valueOf(avgWorkouts);
+                } else if (columnName.equalsIgnoreCase(UserTable.AVG_CALORIES_BURNED)) {
+                    return String.valueOf(avgCaloriesBurned);
+                } else if (columnName.equalsIgnoreCase(UserTable.ALL_TIME_DISTANCE)) {
+                    return String.valueOf(allTimeDistance);
+                } else if (columnName.equalsIgnoreCase(UserTable.ALL_TIME_TIME)) {
+                    return allTimeTime;
+                } else if (columnName.equalsIgnoreCase(UserTable.ALL_TIME_WORKOUTS)) {
+                    return String.valueOf(allTimeWorkouts);
+                } else if (columnName.equalsIgnoreCase(UserTable.ALL_TIME_CALORIES_BURNED)) {
+                    return String.valueOf(allTimeCaloriesBurned);
                 }
-            });
 
-            durationTV = (TextView) findViewById(R.id.recordDurationValue);
-            distanceTV = (TextView) findViewById(R.id.recordDistanceValue);
+            } while (c.moveToNext());
         }
-
+        return null;
     }
 
     @Override
@@ -434,8 +509,8 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
         contentValues.put(UserTable.ALL_TIME_CALORIES_BURNED, 0);
 
         getContentResolver().insert(MyContentProvider.CONTENT_URI, contentValues);
-
     }
+
 
 }
 
