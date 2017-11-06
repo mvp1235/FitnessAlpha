@@ -44,7 +44,7 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
 
     static final int PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION = 10001;
     static final int DEFAULT_ZOOM = 15;
-    static final String MY_PREFERENCE = "MyPrefs" ;
+    static final String MY_PREFERENCE = "MyPrefs";
     static final String SENSOR_STEP_COUNT = "sensorStepCount";
     static final double INCHES_PER_STEP_MEN = 30;
     static final double INCHES_PER_STEP_WOMEN = 26;
@@ -56,6 +56,11 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
     static final double REF_CALORIES_BURNED_1000_STEPS = 50;
     static final double REF_STEPS = 1000;
 
+    //For workout detail screen
+    static double currentAvgValue = 0, currentMinValue = 0, currentMaxValue = 0;
+    static int secondsPassed = 0;
+    static int iterations = 0;
+    static double sumValue = 0;
 
     //Google Map and location-related
     private GoogleMap mMap;
@@ -71,8 +76,6 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
     private boolean workoutStarted = false;
     private int currentStepCount;
     private int sensorStepCount;
-    private TextView tv;
-    private TextView tv1;
 
     //Duration timer
     Handler handler = new Handler();
@@ -82,16 +85,16 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
     TextView durationTV;
 
     //Distance
-    private double totalDistance;
+    static double totalDistance;
     private TextView distanceTV;
 
     //Variables for updating database
     private double initialAllTimeDistance = 0;
-    private int secondsPassed = 0;
+    private double initialAllTimeCaloriesBurned = 0;
 
     //Thread management
     private Runnable startTimer;
-    private Runnable distanceUpdate;
+    private Runnable databaseUpdate;
 
     //Remote Service
     MyAIDLInterface remoteService;
@@ -112,7 +115,6 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
             remoteService = null;
         }
     }
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -144,13 +146,14 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
 
         startTimer = new Runnable() {
             public void run() {
+                secondsPassed++;
                 elapsedTime = System.currentTimeMillis() - startTime;
                 updateTimer(elapsedTime);
                 handler.postDelayed(this, REFRESH_RATE);
             }
         };
 
-        distanceUpdate = new Runnable() {
+        databaseUpdate = new Runnable() {
             @Override
             public void run() {
                 int count = 0;
@@ -161,29 +164,33 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
                 }
 
                 currentStepCount = count - sensorStepCount;
-                tv.setText(String.valueOf(currentStepCount));
 
-
+                //Updating Distance UI
                 totalDistance = currentStepCount * INCHES_PER_STEP_MEN; // in inches
                 totalDistance *= MILE_PER_INCH;
-                distanceTV.setText(String.format("%.2f", totalDistance));
+                distanceTV.setText(String.format("%.1f", totalDistance));
 
                 double currentAllTimeDistance = Double.parseDouble(getDatabaseColumnValue(UserTable.ALL_TIME_DISTANCE));
-
-                Log.i("TEST", "INITIAL: " + initialAllTimeDistance);
-                initialAllTimeDistance = totalDistance;
                 double distanceToBeAdded = totalDistance - initialAllTimeDistance;
+                initialAllTimeDistance = totalDistance;
+
+
+                //Updating Calories UI
+                double currentAllTimeCaloriesBurned = Double.parseDouble(getDatabaseColumnValue(UserTable.ALL_TIME_CALORIES_BURNED));
+                double weight = Double.parseDouble(getDatabaseColumnValue(UserTable.WEIGHT));
+                double calories = calculateCaloriesBurned(weight, currentStepCount);
+                double caloriesToBeAdded = calories - initialAllTimeCaloriesBurned;
+                initialAllTimeCaloriesBurned = calories;
+
+                //Updating time in database
+                Long currentAllTimeTime = Long.parseLong(getDatabaseColumnValue(UserTable.ALL_TIME_TIME));
+                currentAllTimeTime++;
 
                 ContentValues contentValues = new ContentValues();
                 contentValues.put(UserTable.ALL_TIME_DISTANCE, currentAllTimeDistance + distanceToBeAdded);
-                int c = getContentResolver().update(MyContentProvider.CONTENT_URI, contentValues, "_id = ?", new String[] {"1"});
-
-                Log.i("TEST", "DATABASE: " + currentAllTimeDistance);
-                Log.i("TEST", "CURRENT: " + totalDistance);
-                Log.i("TEST", "UPDATED " + c);
-
-                double calories = calculateCaloriesBurned(100, currentStepCount);
-                tv1.setText(String.format("%.2f", calories));
+                contentValues.put(UserTable.ALL_TIME_CALORIES_BURNED, currentAllTimeCaloriesBurned + caloriesToBeAdded);
+                contentValues.put(UserTable.ALL_TIME_TIME, String.valueOf(currentAllTimeTime));
+                getContentResolver().update(MyContentProvider.CONTENT_URI, contentValues, "_id = ?", new String[] {"1"});
 
                 //Update the value of step count returned by sensor
                 editor.putInt(SENSOR_STEP_COUNT, count);
@@ -192,10 +199,6 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
                 handler.postDelayed(this, REFRESH_RATE);
             }
         };
-
-
-        tv = (TextView) findViewById(R.id.ex);
-        tv1 = (TextView) findViewById(R.id.ex1);
 
         //Setting up location services
         // Construct a GeoDataClient.
@@ -253,7 +256,6 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
     public String getDatabaseColumnValue(String columnName) {
         Cursor c = getContentResolver().query(MyContentProvider.CONTENT_URI, null, "_id = ?", new String[] {"1"}, UserTable._ID);
 
-        Log.i("TEST1", String.valueOf(c.getCount()));
         if (c.moveToFirst()) {
             do {
                 if (columnName.equalsIgnoreCase(UserTable.NAME)) {
@@ -327,16 +329,26 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
             startTime = System.currentTimeMillis();
         }
         handler.removeCallbacks(startTimer);
-        handler.postDelayed(startTimer, 0);
+        handler.postDelayed(startTimer, REFRESH_RATE);
 
         //Handling distance UI
+        handler.removeCallbacks(databaseUpdate);
+        handler.postDelayed(databaseUpdate, REFRESH_RATE);
         currentStepCount = 0;
-        handler.removeCallbacks(distanceUpdate);
-        handler.postDelayed(distanceUpdate, 0);
+        totalDistance = 0;
+        secondsPassed = 0;
+
+        //Update all time workouts number
+        int currentAllTimeWorkouts = Integer.parseInt(getDatabaseColumnValue(UserTable.ALL_TIME_WORKOUTS));
+        currentAllTimeWorkouts += 1;
+        ContentValues contentValues = new ContentValues();
+        contentValues.put(UserTable.ALL_TIME_WORKOUTS, currentAllTimeWorkouts);
+        getContentResolver().update(MyContentProvider.CONTENT_URI, contentValues, "_id = ?", new String[] {"1"});
 
     }
 
     public void stopWorkout() {
+        secondsPassed = 0;
         workoutStarted = false;
         workoutButton.setText(R.string.startWorkout);
         workoutButton.setBackgroundColor(getResources().getColor(R.color.green_start_color));
@@ -346,9 +358,22 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
         handler.removeCallbacks(startTimer);
         durationTV.setText("00:00:00");
 
+        iterations = 0;
+        sumValue = 0;
+
+        //Reset avg, min, and max in detail screen everytime a workout is finished
+        editor.putFloat(WorkoutDetailActivity.CURRENT_AVG_VALUE, 0);
+        editor.putFloat(WorkoutDetailActivity.CURRENT_MIN_VALUE, 0);
+        editor.putFloat(WorkoutDetailActivity.CURRENT_MAX_VALUE, 0);
+        editor.putInt(WorkoutDetailActivity.ITERATIONS, 0);
+        editor.putFloat(WorkoutDetailActivity.SUM_TOTAL, 0);
+        editor.commit();
+
         //Distance UI
-        handler.removeCallbacks(distanceUpdate);
+        handler.removeCallbacks(databaseUpdate);
+
     }
+
 
     public double calculateCaloriesBurned(double weight, int stepCount) {
         double result = 0;
@@ -501,11 +526,11 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
         contentValues.put(UserTable.GENDER, "Male");
         contentValues.put(UserTable.WEIGHT, 140);
         contentValues.put(UserTable.AVG_DISTANCE, 0);
-        contentValues.put(UserTable.AVG_TIME, "0 sec");
+        contentValues.put(UserTable.AVG_TIME, "0");
         contentValues.put(UserTable.AVG_WORKOUTS, 0);
         contentValues.put(UserTable.AVG_CALORIES_BURNED, 0);
         contentValues.put(UserTable.ALL_TIME_DISTANCE, 0);
-        contentValues.put(UserTable.ALL_TIME_TIME, "0 sec");
+        contentValues.put(UserTable.ALL_TIME_TIME, "0");
         contentValues.put(UserTable.ALL_TIME_WORKOUTS, 0);
         contentValues.put(UserTable.ALL_TIME_CALORIES_BURNED, 0);
 

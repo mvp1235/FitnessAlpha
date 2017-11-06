@@ -20,7 +20,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:contentDescription="@string/userProfileIcon"
-            app:srcCompat="@drawable/user_profile_image" />
+            android:src="@drawable/user_profile_image"/>
 
         <TextView
             android:id="@+id/userNameValue"
