@@ -39,15 +39,17 @@
 
         <activity
             android:name=".MainScreenActivity"
-            android:label="@string/title_activity_record_workout"
-            android:configChanges="orientation|keyboardHidden|screenSize">
+            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:label="@string/title_activity_record_workout">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".UserProfileActivity"
-            android:screenOrientation="portrait"/>
+        <activity
+            android:name=".UserProfileActivity"
+            android:screenOrientation="portrait" />
 
         <provider
             android:name=".MyContentProvider"
@@ -61,10 +63,10 @@
             android:exported="true"
             android:process=".anotherProc" />
 
-        <activity android:name=".WorkoutDetailActivity"
-            android:configChanges="orientation|keyboardHidden|screenSize">
-
-        </activity>
+        <activity
+            android:name=".WorkoutDetailActivity"
+            android:configChanges="orientation|keyboardHidden|screenSize"></activity>
+        <activity android:name=".EditUserInfoActivity"></activity>
     </application>
 
 </manifest>

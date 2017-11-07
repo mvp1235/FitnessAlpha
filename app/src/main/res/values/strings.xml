@@ -28,4 +28,14 @@
     <string name="detailUnit">min/mile</string>
     <string name="max">MAX</string>
     <string name="min">MIN</string>
+    <string name="gender_prompt">Pick a gender</string>
+    <string name="weightPrompt">in lbs</string>
+    <string name="save">Save</string>
+
+    <string-array name="genders">
+        <item>Male</item>
+        <item>Female</item>
+    </string-array>
+
+
 </resources>

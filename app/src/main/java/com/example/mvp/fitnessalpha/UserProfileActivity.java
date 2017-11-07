@@ -1,17 +1,24 @@
 package com.example.mvp.fitnessalpha;
 
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
+import android.view.View;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 public class UserProfileActivity extends AppCompatActivity {
 
     private static final long REFRESH_RATE = 1000;
+    private static final int EDIT_USER_INFO_CODE = 1001;
     private TextView userNameTV, genderTV, weightTV;
     private TextView avgDistanceTV, avgTimeTV, avgWorkoutsTV, avgCaloriesBurnedTV;
     private TextView allTimeDistanceTV, allTimeTimeTV, allTimeWorkoutsTV, allTimeCaloriesBurnedTV;
+    private ImageView profileIcon;
 
     private Runnable uiUpdate;
     private Handler handler;
@@ -35,10 +42,39 @@ public class UserProfileActivity extends AppCompatActivity {
         allTimeTimeTV = (TextView) findViewById(R.id.allTimeValue);
         allTimeWorkoutsTV = (TextView) findViewById(R.id.allWorkoutsValue);
         allTimeCaloriesBurnedTV = (TextView) findViewById(R.id.allCaloriesBurnedValue);
+        profileIcon = (ImageView) findViewById(R.id.userProfileImgView);
+
+        profileIcon.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                editUserInfo();
+            }
+        });
 
         initializeViews();
         updateViews();
 
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == EDIT_USER_INFO_CODE) {
+            if (resultCode == RESULT_OK) {
+                userNameTV.setText(data.getStringExtra(UserTable.NAME));
+                genderTV.setText(data.getStringExtra(UserTable.GENDER));
+                weightTV.setText(data.getStringExtra(UserTable.WEIGHT));
+            }
+        }
+    }
+
+    private void editUserInfo() {
+        Intent intent = new Intent(this, EditUserInfoActivity.class);
+        intent.putExtra(UserTable.NAME, userNameTV.getText().toString());
+        intent.putExtra(UserTable.GENDER, genderTV.getText().toString());
+        intent.putExtra(UserTable.WEIGHT, weightTV.getText().toString());
+
+        startActivityForResult(intent, EDIT_USER_INFO_CODE);
     }
 
     @Override
