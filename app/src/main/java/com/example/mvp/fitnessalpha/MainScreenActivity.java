@@ -86,6 +86,7 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
     Handler handler = new Handler();
     long startTime = 0L, elapsedTime = 0L;
     private final int REFRESH_RATE = 1000;
+    private final int MAP_REFRESH_RATE = 10000;
     private final int CALORIES_REFRESH_RATE = 5000;
     private final int STEPS_REFRESH_RATE = 5000;
     private boolean restart = false;
@@ -104,6 +105,7 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
     private Runnable databaseUpdate;
     private Runnable addCaloriesPer1Min;
     private Runnable addStepsCountPer5Min;
+    private Runnable mapUpdate;
 
     //Remote Service
     MyAIDLInterface remoteService;
@@ -191,9 +193,18 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
                 secondsPassed++;
                 elapsedTime = System.currentTimeMillis() - startTime;
                 updateTimer(elapsedTime);
+
                 handler.postDelayed(this, REFRESH_RATE);
             }
         };
+
+        mapUpdate = new Runnable() {
+            public void run() {
+                getDeviceLocation();
+                handler.postDelayed(this, MAP_REFRESH_RATE);
+            }
+        };
+
 
         databaseUpdate = new Runnable() {
             @Override
@@ -387,6 +398,10 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
         handler.postDelayed(addStepsCountPer5Min, CALORIES_REFRESH_RATE);
         handler.postDelayed(addCaloriesPer1Min, CALORIES_REFRESH_RATE);
 
+        //Map
+        handler.removeCallbacks(mapUpdate);
+        handler.postDelayed(mapUpdate, MAP_REFRESH_RATE);
+
         //Update all time workouts number
         int currentAllTimeWorkouts = Integer.parseInt(getDatabaseColumnValue(UserTable.ALL_TIME_WORKOUTS));
         currentAllTimeWorkouts += 1;
@@ -423,6 +438,9 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
         //Detail workout UI
         handler.removeCallbacks(addCaloriesPer1Min);
         handler.removeCallbacks(addStepsCountPer5Min);
+
+        //Map
+        handler.removeCallbacks(mapUpdate);
 
         caloriesEntries = new ArrayList<>();
         stepsEntries = new ArrayList<>();
