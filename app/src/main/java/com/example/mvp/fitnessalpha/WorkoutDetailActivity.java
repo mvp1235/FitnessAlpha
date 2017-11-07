@@ -7,10 +7,8 @@ import android.graphics.Color;
 import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.util.Log;
 import android.widget.TextView;
 import com.github.mikephil.charting.charts.LineChart;
-import com.github.mikephil.charting.components.Description;
 import com.github.mikephil.charting.components.Legend;
 import com.github.mikephil.charting.components.XAxis;
 import com.github.mikephil.charting.components.YAxis;
@@ -18,11 +16,6 @@ import com.github.mikephil.charting.data.Entry;
 import com.github.mikephil.charting.data.LineData;
 import com.github.mikephil.charting.data.LineDataSet;
 import com.github.mikephil.charting.interfaces.datasets.ILineDataSet;
-import com.github.mikephil.charting.utils.ColorTemplate;
-
-
-import java.lang.reflect.Array;
-import java.util.ArrayList;
 
 
 public class WorkoutDetailActivity extends AppCompatActivity {
@@ -222,7 +215,6 @@ public class WorkoutDetailActivity extends AppCompatActivity {
         set.setHighLightColor(Color.rgb(117, 117, 117));
         set.setValueTextColor(Color.BLUE);
         set.setValueTextSize(9f);
-//        set.setDrawValues(false);
         return set;
     }
 
@@ -238,7 +230,6 @@ public class WorkoutDetailActivity extends AppCompatActivity {
         set.setHighLightColor(Color.rgb(244, 117, 117));
         set.setValueTextColor(Color.RED);
         set.setValueTextSize(9f);
-//        set.setDrawValues(false);
         return set;
     }
 

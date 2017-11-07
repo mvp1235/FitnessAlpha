@@ -1,5 +1,4 @@
 package com.example.mvp.fitnessalpha;
-import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.ContentValues;
 import android.content.Context;
@@ -11,7 +10,6 @@ import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.database.Cursor;
 import android.location.Location;
-import android.net.Uri;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.RemoteException;
@@ -37,7 +35,10 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
+import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 
@@ -47,7 +48,7 @@ import java.util.ArrayList;
 public class MainScreenActivity extends FragmentActivity implements OnMapReadyCallback {
 
     static final int PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION = 10001;
-    static final int DEFAULT_ZOOM = 15;
+    static final int DEFAULT_ZOOM = 17;
     static final String MY_PREFERENCE = "MyPrefs";
     static final String SENSOR_STEP_COUNT = "sensorStepCount";
     static final double INCHES_PER_STEP_MEN = 30;
@@ -85,8 +86,8 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
     Handler handler = new Handler();
     long startTime = 0L, elapsedTime = 0L;
     private final int REFRESH_RATE = 1000;
-    private final int ONE_MIN_REFRESH_RATE = 60000;
-    private final int FIVE_MIN_REFRESH_RATE = 300000;
+    private final int CALORIES_REFRESH_RATE = 5000;
+    private final int STEPS_REFRESH_RATE = 5000;
     private boolean restart = false;
     private TextView durationTV;
 
@@ -169,19 +170,19 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
                     e = new Entry(0f, 0);   //add starting plot
                 }
                 caloriesEntries.add(e);
-                handler.postDelayed(this, ONE_MIN_REFRESH_RATE);
+                handler.postDelayed(this, CALORIES_REFRESH_RATE);
             }
         };
 
         addStepsCountPer5Min = new Runnable() {
             @Override
             public void run() {
-                Entry e = new Entry(stepsEntries.size()*5f, currentStepCount);
+                Entry e = new Entry(stepsEntries.size()*1f, currentStepCount);
                 if (stepsEntries.size() == 0) {
                     e = new Entry(0f,0);    //add starting plot
                 }
                 stepsEntries.add(e);
-                handler.postDelayed(this, FIVE_MIN_REFRESH_RATE);
+                handler.postDelayed(this, CALORIES_REFRESH_RATE);
             }
         };
 
@@ -383,8 +384,8 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
         //Start workout detail threads
         handler.removeCallbacks(addCaloriesPer1Min);
         handler.removeCallbacks(addStepsCountPer5Min);
-        handler.postDelayed(addStepsCountPer5Min, FIVE_MIN_REFRESH_RATE);
-        handler.postDelayed(addCaloriesPer1Min, ONE_MIN_REFRESH_RATE);
+        handler.postDelayed(addStepsCountPer5Min, CALORIES_REFRESH_RATE);
+        handler.postDelayed(addCaloriesPer1Min, CALORIES_REFRESH_RATE);
 
         //Update all time workouts number
         int currentAllTimeWorkouts = Integer.parseInt(getDatabaseColumnValue(UserTable.ALL_TIME_WORKOUTS));
@@ -530,9 +531,14 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
                             // Set the map's camera position to the current location of the device.
                             mLastKnownLocation = (Location) task.getResult();
                             if (mLastKnownLocation != null) {
+                                LatLng currentLocation = new LatLng(mLastKnownLocation.getLatitude(), mLastKnownLocation.getLongitude());
+
                                 mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(
                                         new LatLng(mLastKnownLocation.getLatitude(),
                                                 mLastKnownLocation.getLongitude()), DEFAULT_ZOOM));
+                                mMap.addMarker(new MarkerOptions()
+                                        .position(currentLocation)
+                                        .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)));
                             } else {
                                 Toast.makeText(getApplicationContext(), "Cannot get current location. Please turn on GPS or allow permission request.", Toast.LENGTH_SHORT).show();
                             }
