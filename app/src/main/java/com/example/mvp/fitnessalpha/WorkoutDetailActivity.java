@@ -7,6 +7,7 @@ import android.graphics.Color;
 import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.TextView;
 import com.github.mikephil.charting.charts.LineChart;
 import com.github.mikephil.charting.components.Description;
@@ -26,7 +27,7 @@ import java.util.ArrayList;
 
 public class WorkoutDetailActivity extends AppCompatActivity {
 
-    private static final long REFRESH_RATE = 1000;
+    private static final long REFRESH_RATE = 2000;
     static final String CURRENT_AVG_VALUE = "currentAvgValue";
     static final String CURRENT_MIN_VALUE = "currentMinValue";
     static final String CURRENT_MAX_VALUE = "currentMaxValue";
@@ -41,7 +42,6 @@ public class WorkoutDetailActivity extends AppCompatActivity {
     private SharedPreferences.Editor editor;
 
     private LineChart mChart;
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -86,6 +86,7 @@ public class WorkoutDetailActivity extends AppCompatActivity {
                     minValueTV.setText(getMinuteSeconds(MainScreenActivity.currentMinValue));
                     maxValueTV.setText(getMinuteSeconds(MainScreenActivity.currentMaxValue));
                 }
+                updateChartUI();
                 handler.postDelayed(this, REFRESH_RATE);
             }
         };
@@ -128,24 +129,32 @@ public class WorkoutDetailActivity extends AppCompatActivity {
         XAxis xl = mChart.getXAxis();
         xl.setTextColor(Color.BLACK);
         xl.setDrawGridLines(false);
+        xl.setAxisMinimum(0f);
         xl.setAvoidFirstLastClipping(true);
         xl.setEnabled(true);
+        xl.setDrawLabels(true);
+        xl.setGranularity(1f);
 
         YAxis leftAxis = mChart.getAxisLeft();
         leftAxis.setTextColor(Color.BLACK);
-        leftAxis.setAxisMaximum(100f);
         leftAxis.setAxisMinimum(0f);
         leftAxis.setDrawGridLines(true);
+        leftAxis.setGranularity(1f);
 
         YAxis rightAxis = mChart.getAxisRight();
         rightAxis.setEnabled(false);
 
-        feedMultiple();
+    }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (!MainScreenActivity.workoutStarted) {
+            handler.removeCallbacks(uiUpdate);
+        }
     }
 
     private void updateChartUI() {
-
         LineData data = mChart.getData();
 
         if (data != null) {
@@ -159,10 +168,27 @@ public class WorkoutDetailActivity extends AppCompatActivity {
                 stepsSet = createStepsSet();
                 data.addDataSet(caloriesSet);
                 data.addDataSet(stepsSet);
+
+                Entry e = new Entry(0f, 0);
+                data.addEntry(e, 0);
+                data.addEntry(e, 1);
             }
 
-            data.addEntry(new Entry(caloriesSet.getEntryCount(), (float) (Math.random() * 40) + 30f), 0);
-            data.addEntry(new Entry(caloriesSet.getEntryCount(), (float) (Math.random() * 40) + 30f), 1);
+            //Add new data entries to Calories Set
+            int currentCaloriesSetSize = caloriesSet.getEntryCount();
+            for (int i=currentCaloriesSetSize; i<MainScreenActivity.caloriesEntries.size(); i++) {
+                Entry e = MainScreenActivity.caloriesEntries.get(i);
+                data.addEntry(e, 0);
+            }
+
+            //Add new data entries to Steps Set
+            int currentStepCountSetSize = stepsSet.getEntryCount();
+            for (int i=currentStepCountSetSize; i<MainScreenActivity.stepsEntries.size(); i++) {
+                Entry e = MainScreenActivity.stepsEntries.get(i);
+                data.addEntry(e, 1);
+            }
+
+
             data.notifyDataChanged();
 
             // let the chart know it's data has changed
@@ -173,7 +199,8 @@ public class WorkoutDetailActivity extends AppCompatActivity {
             // mChart.setVisibleYRange(30, AxisDependency.LEFT);
 
             // move to the latest entry
-            mChart.moveViewToX(data.getEntryCount());
+            if (data.getEntryCount() >= 5)
+                mChart.moveViewToX(data.getEntryCount());
 
             // this automatically refreshes the chart (calls invalidate())
             // mChart.moveViewTo(data.getXValCount()-7, 55f,
@@ -184,6 +211,7 @@ public class WorkoutDetailActivity extends AppCompatActivity {
     private LineDataSet createCaloriesSet() {
 
         LineDataSet set = new LineDataSet(null, "Calories Burned");
+
         set.setAxisDependency(YAxis.AxisDependency.LEFT);
         set.setColor(Color.BLUE);
         set.setCircleColor(Color.BLUE);
@@ -212,43 +240,6 @@ public class WorkoutDetailActivity extends AppCompatActivity {
         set.setValueTextSize(9f);
 //        set.setDrawValues(false);
         return set;
-    }
-
-    private Thread thread;
-
-    private void feedMultiple() {
-
-        if (thread != null)
-            thread.interrupt();
-
-        final Runnable runnable = new Runnable() {
-
-            @Override
-            public void run() {
-                updateChartUI();
-            }
-        };
-
-        thread = new Thread(new Runnable() {
-
-            @Override
-            public void run() {
-                while (MainScreenActivity.workoutStarted) {
-
-                    // Don't generate garbage runnables inside the loop.
-                    runOnUiThread(runnable);
-
-                    try {
-                        Thread.sleep(5000);
-                    } catch (InterruptedException e) {
-                        // TODO Auto-generated catch block
-                        e.printStackTrace();
-                    }
-                }
-            }
-        });
-
-        thread.start();
     }
 
     public double calculateAvgValue() {

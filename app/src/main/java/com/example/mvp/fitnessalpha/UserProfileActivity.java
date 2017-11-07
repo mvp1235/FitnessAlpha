@@ -117,12 +117,19 @@ public class UserProfileActivity extends AppCompatActivity {
 
                     } while (c.moveToNext());
                 }
-
                 handler.postDelayed(this, REFRESH_RATE);
             }
         };
 
         handler.postDelayed(uiUpdate, REFRESH_RATE);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (!MainScreenActivity.workoutStarted) {
+            handler.removeCallbacks(uiUpdate);
+        }
     }
 
     public String createTimeFormat(Long seconds) {

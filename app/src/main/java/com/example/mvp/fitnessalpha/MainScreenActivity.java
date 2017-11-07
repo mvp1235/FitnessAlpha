@@ -85,6 +85,8 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
     Handler handler = new Handler();
     long startTime = 0L, elapsedTime = 0L;
     private final int REFRESH_RATE = 1000;
+    private final int ONE_MIN_REFRESH_RATE = 60000;
+    private final int FIVE_MIN_REFRESH_RATE = 300000;
     private boolean restart = false;
     private TextView durationTV;
 
@@ -110,8 +112,8 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
     private SharedPreferences.Editor editor;
 
     //For detail workout screen
-    static ArrayList<Entry> caloriesEntries = new ArrayList<>();
-    static ArrayList<Entry> stepsEntries = new ArrayList<>();
+    static ArrayList<Entry> caloriesEntries;
+    static ArrayList<Entry> stepsEntries;
 
     class RemoteConnection implements ServiceConnection {
 
@@ -130,6 +132,9 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main_screen);
+
+        caloriesEntries = new ArrayList<>();
+        stepsEntries = new ArrayList<>();
 
         sharedPref = getSharedPreferences(MY_PREFERENCE, Context.MODE_PRIVATE);
         editor = sharedPref.edit();
@@ -164,6 +169,7 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
                     e = new Entry(0f, 0);   //add starting plot
                 }
                 caloriesEntries.add(e);
+                handler.postDelayed(this, ONE_MIN_REFRESH_RATE);
             }
         };
 
@@ -175,6 +181,7 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
                     e = new Entry(0f,0);    //add starting plot
                 }
                 stepsEntries.add(e);
+                handler.postDelayed(this, FIVE_MIN_REFRESH_RATE);
             }
         };
 
@@ -366,6 +373,7 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
         handler.postDelayed(startTimer, REFRESH_RATE);
 
         //Handling distance UI
+        distanceTV.setText("0.0");
         handler.removeCallbacks(databaseUpdate);
         handler.postDelayed(databaseUpdate, REFRESH_RATE);
         currentStepCount = 0;
@@ -375,8 +383,8 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
         //Start workout detail threads
         handler.removeCallbacks(addCaloriesPer1Min);
         handler.removeCallbacks(addStepsCountPer5Min);
-        handler.postDelayed(addStepsCountPer5Min, 5000);
-        handler.postDelayed(addCaloriesPer1Min, 1000);
+        handler.postDelayed(addStepsCountPer5Min, FIVE_MIN_REFRESH_RATE);
+        handler.postDelayed(addCaloriesPer1Min, ONE_MIN_REFRESH_RATE);
 
         //Update all time workouts number
         int currentAllTimeWorkouts = Integer.parseInt(getDatabaseColumnValue(UserTable.ALL_TIME_WORKOUTS));
@@ -384,7 +392,6 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
         ContentValues contentValues = new ContentValues();
         contentValues.put(UserTable.ALL_TIME_WORKOUTS, currentAllTimeWorkouts);
         getContentResolver().update(MyContentProvider.CONTENT_URI, contentValues, "_id = ?", new String[] {"1"});
-
     }
 
     public void stopWorkout() {
@@ -416,6 +423,8 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
         handler.removeCallbacks(addCaloriesPer1Min);
         handler.removeCallbacks(addStepsCountPer5Min);
 
+        caloriesEntries = new ArrayList<>();
+        stepsEntries = new ArrayList<>();
 
     }
 
