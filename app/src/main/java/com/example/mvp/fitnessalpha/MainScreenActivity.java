@@ -26,6 +26,8 @@ import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import com.github.mikephil.charting.data.Entry;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.places.GeoDataClient;
@@ -38,6 +40,8 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
+
+import java.util.ArrayList;
 
 
 public class MainScreenActivity extends FragmentActivity implements OnMapReadyCallback {
@@ -73,7 +77,7 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
     //UI Elements
     private Button workoutButton;
 
-    private boolean workoutStarted = false;
+    static boolean workoutStarted = false;
     private int currentStepCount;
     private int sensorStepCount;
 
@@ -82,7 +86,7 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
     long startTime = 0L, elapsedTime = 0L;
     private final int REFRESH_RATE = 1000;
     private boolean restart = false;
-    TextView durationTV;
+    private TextView durationTV;
 
     //Distance
     static double totalDistance;
@@ -95,6 +99,8 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
     //Thread management
     private Runnable startTimer;
     private Runnable databaseUpdate;
+    private Runnable addCaloriesPer1Min;
+    private Runnable addStepsCountPer5Min;
 
     //Remote Service
     MyAIDLInterface remoteService;
@@ -102,6 +108,10 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
 
     private SharedPreferences sharedPref;
     private SharedPreferences.Editor editor;
+
+    //For detail workout screen
+    static ArrayList<Entry> caloriesEntries = new ArrayList<>();
+    static ArrayList<Entry> stepsEntries = new ArrayList<>();
 
     class RemoteConnection implements ServiceConnection {
 
@@ -143,6 +153,30 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
         if (!bindService(intent, remoteConnection, BIND_AUTO_CREATE)) {
             Toast.makeText(this, "Fail to bind the remote service.", Toast.LENGTH_SHORT).show();
         }
+
+        addCaloriesPer1Min = new Runnable() {
+            @Override
+            public void run() {
+                double weight = Double.parseDouble(getDatabaseColumnValue(UserTable.WEIGHT));
+                double calories = calculateCaloriesBurned(weight, currentStepCount);
+                Entry e = new Entry(caloriesEntries.size()*1f, (float)calories);
+                if (caloriesEntries.size() == 0) {
+                    e = new Entry(0f, 0);   //add starting plot
+                }
+                caloriesEntries.add(e);
+            }
+        };
+
+        addStepsCountPer5Min = new Runnable() {
+            @Override
+            public void run() {
+                Entry e = new Entry(stepsEntries.size()*5f, currentStepCount);
+                if (stepsEntries.size() == 0) {
+                    e = new Entry(0f,0);    //add starting plot
+                }
+                stepsEntries.add(e);
+            }
+        };
 
         startTimer = new Runnable() {
             public void run() {
@@ -338,6 +372,12 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
         totalDistance = 0;
         secondsPassed = 0;
 
+        //Start workout detail threads
+        handler.removeCallbacks(addCaloriesPer1Min);
+        handler.removeCallbacks(addStepsCountPer5Min);
+        handler.postDelayed(addStepsCountPer5Min, 5000);
+        handler.postDelayed(addCaloriesPer1Min, 1000);
+
         //Update all time workouts number
         int currentAllTimeWorkouts = Integer.parseInt(getDatabaseColumnValue(UserTable.ALL_TIME_WORKOUTS));
         currentAllTimeWorkouts += 1;
@@ -371,6 +411,11 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
 
         //Distance UI
         handler.removeCallbacks(databaseUpdate);
+
+        //Detail workout UI
+        handler.removeCallbacks(addCaloriesPer1Min);
+        handler.removeCallbacks(addStepsCountPer5Min);
+
 
     }
 

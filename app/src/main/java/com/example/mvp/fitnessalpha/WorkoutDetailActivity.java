@@ -9,6 +9,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.widget.TextView;
 import com.github.mikephil.charting.charts.LineChart;
+import com.github.mikephil.charting.components.Description;
 import com.github.mikephil.charting.components.Legend;
 import com.github.mikephil.charting.components.XAxis;
 import com.github.mikephil.charting.components.YAxis;
@@ -16,6 +17,7 @@ import com.github.mikephil.charting.data.Entry;
 import com.github.mikephil.charting.data.LineData;
 import com.github.mikephil.charting.data.LineDataSet;
 import com.github.mikephil.charting.interfaces.datasets.ILineDataSet;
+import com.github.mikephil.charting.utils.ColorTemplate;
 
 
 import java.lang.reflect.Array;
@@ -39,6 +41,7 @@ public class WorkoutDetailActivity extends AppCompatActivity {
     private SharedPreferences.Editor editor;
 
     private LineChart mChart;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -94,22 +97,159 @@ public class WorkoutDetailActivity extends AppCompatActivity {
 
         // enable description text
         mChart.getDescription().setEnabled(true);
+
         // enable touch gestures
         mChart.setTouchEnabled(true);
+
         // enable scaling and dragging
         mChart.setDragEnabled(true);
         mChart.setScaleEnabled(true);
         mChart.setDrawGridBackground(false);
+
         // if disabled, scaling can be done on x- and y-axis separately
         mChart.setPinchZoom(true);
+
         // set an alternative background color
         mChart.setBackgroundColor(Color.WHITE);
 
-        
+        LineData data = new LineData();
+        data.setValueTextColor(Color.BLACK);
 
+        // add empty data
+        mChart.setData(data);
+
+        // get the legend (only possible after setting data)
+        Legend l = mChart.getLegend();
+
+        // modify the legend ...
+        l.setForm(Legend.LegendForm.LINE);
+        l.setTextColor(Color.BLACK);
+
+        XAxis xl = mChart.getXAxis();
+        xl.setTextColor(Color.BLACK);
+        xl.setDrawGridLines(false);
+        xl.setAvoidFirstLastClipping(true);
+        xl.setEnabled(true);
+
+        YAxis leftAxis = mChart.getAxisLeft();
+        leftAxis.setTextColor(Color.BLACK);
+        leftAxis.setAxisMaximum(100f);
+        leftAxis.setAxisMinimum(0f);
+        leftAxis.setDrawGridLines(true);
+
+        YAxis rightAxis = mChart.getAxisRight();
+        rightAxis.setEnabled(false);
+
+        feedMultiple();
 
     }
 
+    private void updateChartUI() {
+
+        LineData data = mChart.getData();
+
+        if (data != null) {
+
+            ILineDataSet caloriesSet = data.getDataSetByIndex(0);
+            ILineDataSet stepsSet = data.getDataSetByIndex(1);
+            // set.addEntry(...); // can be called as well
+
+            if (caloriesSet == null || stepsSet == null) {
+                caloriesSet = createCaloriesSet();
+                stepsSet = createStepsSet();
+                data.addDataSet(caloriesSet);
+                data.addDataSet(stepsSet);
+            }
+
+            data.addEntry(new Entry(caloriesSet.getEntryCount(), (float) (Math.random() * 40) + 30f), 0);
+            data.addEntry(new Entry(caloriesSet.getEntryCount(), (float) (Math.random() * 40) + 30f), 1);
+            data.notifyDataChanged();
+
+            // let the chart know it's data has changed
+            mChart.notifyDataSetChanged();
+
+            // limit the number of visible entries
+            mChart.setVisibleXRangeMaximum(10);
+            // mChart.setVisibleYRange(30, AxisDependency.LEFT);
+
+            // move to the latest entry
+            mChart.moveViewToX(data.getEntryCount());
+
+            // this automatically refreshes the chart (calls invalidate())
+            // mChart.moveViewTo(data.getXValCount()-7, 55f,
+            // AxisDependency.LEFT);
+        }
+    }
+
+    private LineDataSet createCaloriesSet() {
+
+        LineDataSet set = new LineDataSet(null, "Calories Burned");
+        set.setAxisDependency(YAxis.AxisDependency.LEFT);
+        set.setColor(Color.BLUE);
+        set.setCircleColor(Color.BLUE);
+        set.setLineWidth(2f);
+        set.setCircleRadius(4f);
+        set.setFillAlpha(65);
+        set.setFillColor(Color.BLUE);
+        set.setHighLightColor(Color.rgb(117, 117, 117));
+        set.setValueTextColor(Color.BLUE);
+        set.setValueTextSize(9f);
+//        set.setDrawValues(false);
+        return set;
+    }
+
+    private LineDataSet createStepsSet() {
+        LineDataSet set = new LineDataSet(null, "Step Counts");
+        set.setAxisDependency(YAxis.AxisDependency.LEFT);
+        set.setColor(Color.RED);
+        set.setCircleColor(Color.RED);
+        set.setLineWidth(2f);
+        set.setCircleRadius(4f);
+        set.setFillAlpha(65);
+        set.setFillColor(Color.RED);
+        set.setHighLightColor(Color.rgb(244, 117, 117));
+        set.setValueTextColor(Color.RED);
+        set.setValueTextSize(9f);
+//        set.setDrawValues(false);
+        return set;
+    }
+
+    private Thread thread;
+
+    private void feedMultiple() {
+
+        if (thread != null)
+            thread.interrupt();
+
+        final Runnable runnable = new Runnable() {
+
+            @Override
+            public void run() {
+                updateChartUI();
+            }
+        };
+
+        thread = new Thread(new Runnable() {
+
+            @Override
+            public void run() {
+                while (MainScreenActivity.workoutStarted) {
+
+                    // Don't generate garbage runnables inside the loop.
+                    runOnUiThread(runnable);
+
+                    try {
+                        Thread.sleep(5000);
+                    } catch (InterruptedException e) {
+                        // TODO Auto-generated catch block
+                        e.printStackTrace();
+                    }
+                }
+            }
+        });
+
+        thread.start();
+    }
 
     public double calculateAvgValue() {
         double value = (double) MainScreenActivity.secondsPassed / MainScreenActivity.totalDistance;    // seconds/mile
