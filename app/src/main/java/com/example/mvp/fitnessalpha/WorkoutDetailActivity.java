@@ -7,6 +7,7 @@ import android.graphics.Color;
 import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.TextView;
 import com.github.mikephil.charting.charts.LineChart;
 import com.github.mikephil.charting.components.Legend;
@@ -127,6 +128,7 @@ public class WorkoutDetailActivity extends AppCompatActivity {
         xl.setEnabled(true);
         xl.setDrawLabels(true);
         xl.setGranularity(1f);
+        xl.setXOffset(5f);
 
         YAxis leftAxis = mChart.getAxisLeft();
         leftAxis.setTextColor(Color.BLACK);
@@ -193,7 +195,7 @@ public class WorkoutDetailActivity extends AppCompatActivity {
 
             // move to the latest entry
             if (data.getEntryCount() >= 5)
-                mChart.moveViewToX(data.getEntryCount());
+                mChart.moveViewToX(data.getEntryCount()*5);
 
             // this automatically refreshes the chart (calls invalidate())
             // mChart.moveViewTo(data.getXValCount()-7, 55f,

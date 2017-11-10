@@ -9,6 +9,7 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.database.Cursor;
+import android.graphics.Color;
 import android.location.Location;
 import android.os.Handler;
 import android.os.IBinder;
@@ -39,6 +40,8 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.Polyline;
+import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 
@@ -74,6 +77,11 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
     private FusedLocationProviderClient mFusedLocationProviderClient;
     private Location mLastKnownLocation;
     private boolean mLocationPermissionGranted;
+    private PolylineOptions polylineOptions;
+    private ArrayList<LatLng> path;
+    private Marker current;
+    private Polyline line;
+    private boolean firstMarker = true;
 
     //UI Elements
     private Button workoutButton;
@@ -167,7 +175,7 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
             public void run() {
                 double weight = Double.parseDouble(getDatabaseColumnValue(UserTable.WEIGHT));
                 double calories = calculateCaloriesBurned(weight, currentStepCount);
-                Entry e = new Entry(caloriesEntries.size()*1f, (float)calories);
+                Entry e = new Entry(caloriesEntries.size()*5f, (float)calories);
                 if (caloriesEntries.size() == 0) {
                     e = new Entry(0f, 0);   //add starting plot
                 }
@@ -179,7 +187,7 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
         addStepsCountPer5Min = new Runnable() {
             @Override
             public void run() {
-                Entry e = new Entry(stepsEntries.size()*1f, currentStepCount);
+                Entry e = new Entry(stepsEntries.size()*5f, currentStepCount);
                 if (stepsEntries.size() == 0) {
                     e = new Entry(0f,0);    //add starting plot
                 }
@@ -219,7 +227,13 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
                 currentStepCount = count - sensorStepCount;
 
                 //Updating Distance UI
-                totalDistance = currentStepCount * INCHES_PER_STEP_MEN; // in inches
+                //Check whether user is male or female and use appropriate assumed average stride length
+                if (getDatabaseColumnValue(UserTable.GENDER).equalsIgnoreCase("Male")) {
+                    totalDistance = currentStepCount * INCHES_PER_STEP_MEN; // in inches
+                } else {
+                    totalDistance = currentStepCount * INCHES_PER_STEP_WOMEN; // in inches
+                }
+
                 totalDistance *= MILE_PER_INCH;
                 distanceTV.setText(String.format("%.1f", totalDistance));
 
@@ -265,6 +279,9 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
+
+        polylineOptions = new PolylineOptions().width(5).color(Color.BLUE).geodesic(true);
+        path = new ArrayList<>();
 
         //Setting up user profile button
         ImageButton profileBtn = (ImageButton) findViewById(R.id.userProfileBtn);
@@ -444,6 +461,7 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
 
         caloriesEntries = new ArrayList<>();
         stepsEntries = new ArrayList<>();
+        path = new ArrayList<>();
 
     }
 
@@ -550,13 +568,30 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
                             mLastKnownLocation = (Location) task.getResult();
                             if (mLastKnownLocation != null) {
                                 LatLng currentLocation = new LatLng(mLastKnownLocation.getLatitude(), mLastKnownLocation.getLongitude());
+                                polylineOptions.add(currentLocation);
 
                                 mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(
                                         new LatLng(mLastKnownLocation.getLatitude(),
                                                 mLastKnownLocation.getLongitude()), DEFAULT_ZOOM));
-                                mMap.addMarker(new MarkerOptions()
-                                        .position(currentLocation)
-                                        .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)));
+                                if (firstMarker) {
+                                    mMap.addMarker(new MarkerOptions()
+                                            .position(currentLocation)
+                                            .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)));
+                                    firstMarker = false;
+
+                                } else {
+                                    if (current != null)
+                                        current.remove();
+                                    current =  mMap.addMarker(new MarkerOptions()
+                                            .position(currentLocation)
+                                            .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_CYAN)));
+                                }
+                                for (int i=0; i<path.size(); i++) {
+                                    polylineOptions.add(path.get(i));
+                                }
+                                if (line != null)
+                                    line.remove();
+                                line = mMap.addPolyline(polylineOptions);
                             } else {
                                 Toast.makeText(getApplicationContext(), "Cannot get current location. Please turn on GPS or allow permission request.", Toast.LENGTH_SHORT).show();
                             }
