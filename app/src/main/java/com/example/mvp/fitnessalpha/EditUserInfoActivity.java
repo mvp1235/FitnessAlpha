@@ -39,6 +39,7 @@ public class EditUserInfoActivity extends AppCompatActivity {
         String currentWeight = intent.getStringExtra(UserTable.WEIGHT);
 
         userNameET.setText(currentName);
+        userNameET.setSelection(userNameET.getText().length()); // move cursor to the end at start
         weightET.setText(currentWeight);
 
         if (currentGender.equalsIgnoreCase("Male")) {

@@ -18,6 +18,8 @@ import com.github.mikephil.charting.data.LineData;
 import com.github.mikephil.charting.data.LineDataSet;
 import com.github.mikephil.charting.interfaces.datasets.ILineDataSet;
 
+import static com.example.mvp.fitnessalpha.MainScreenActivity.handler;
+
 
 public class WorkoutDetailActivity extends AppCompatActivity {
 
@@ -30,7 +32,6 @@ public class WorkoutDetailActivity extends AppCompatActivity {
     private TextView avgValueTV, minValueTV, maxValueTV;
 
     private Runnable uiUpdate;
-    private Handler handler;
 
     private SharedPreferences sharedPref;
     private SharedPreferences.Editor editor;
@@ -44,8 +45,6 @@ public class WorkoutDetailActivity extends AppCompatActivity {
 
         sharedPref = getSharedPreferences(MainScreenActivity.MY_PREFERENCE, Context.MODE_PRIVATE);
         editor = sharedPref.edit();
-
-        handler = new Handler();
 
         MainScreenActivity.currentAvgValue = sharedPref.getFloat(CURRENT_AVG_VALUE, 0);
         MainScreenActivity.currentMinValue = sharedPref.getFloat(CURRENT_MIN_VALUE, 0);

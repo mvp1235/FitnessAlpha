@@ -91,7 +91,7 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
     private int sensorStepCount;
 
     //Duration timer
-    Handler handler = new Handler();
+    static Handler handler = new Handler();
     long startTime = 0L, elapsedTime = 0L;
     private final int REFRESH_RATE = 1000;
     private final int MAP_REFRESH_RATE = 10000;
