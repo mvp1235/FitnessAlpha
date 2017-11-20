@@ -103,10 +103,11 @@ public class UserProfileActivity extends AppCompatActivity {
                 userNameTV.setText(name);
                 genderTV.setText(gender);
                 weightTV.setText(String.valueOf(weight));
-                avgDistanceTV.setText(String.valueOf(avgDistance));
-                avgTimeTV.setText(avgTime);
-                avgWorkoutsTV.setText(String.valueOf(avgWorkouts));
-                avgCaloriesBurnedTV.setText(String.valueOf(avgCaloriesBurned));
+
+                avgDistanceTV.setText(String.format("%.1f", avgDistance) + " miles");
+                avgTimeTV.setText(createTimeFormat(Long.parseLong(avgTime)));
+                avgWorkoutsTV.setText(String.valueOf(avgWorkouts) + " times");
+                avgCaloriesBurnedTV.setText(String.format("%.1f", avgCaloriesBurned) + " Cal");
 
                 allTimeDistanceTV.setText(String.format("%.1f", allTimeDistance) + " miles");
                 allTimeTimeTV.setText(createTimeFormat(Long.parseLong(allTimeTime)));
@@ -140,10 +141,11 @@ public class UserProfileActivity extends AppCompatActivity {
                         userNameTV.setText(name);
                         genderTV.setText(gender);
                         weightTV.setText(String.valueOf(weight));
-                        avgDistanceTV.setText(String.valueOf(avgDistance));
-                        avgTimeTV.setText(avgTime);
-                        avgWorkoutsTV.setText(String.valueOf(avgWorkouts));
-                        avgCaloriesBurnedTV.setText(String.valueOf(avgCaloriesBurned));
+
+                        avgDistanceTV.setText(String.format("%.1f", avgDistance) + " miles");
+                        avgTimeTV.setText(createTimeFormat(Long.parseLong(avgTime)));
+                        avgWorkoutsTV.setText(String.valueOf(avgWorkouts) + " times");
+                        avgCaloriesBurnedTV.setText(String.format("%.1f", avgCaloriesBurned) + " Cal");
 
                         allTimeDistanceTV.setText(String.format("%.1f", allTimeDistance) + " miles");
                         allTimeTimeTV.setText(createTimeFormat(Long.parseLong(allTimeTime)));

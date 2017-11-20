@@ -241,6 +241,8 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
                 double distanceToBeAdded = totalDistance - initialAllTimeDistance;
                 initialAllTimeDistance = totalDistance;
 
+                double currentAvgDistance = Double.parseDouble(getDatabaseColumnValue(UserTable.AVG_DISTANCE));
+
 
                 //Updating Calories UI
                 double currentAllTimeCaloriesBurned = Double.parseDouble(getDatabaseColumnValue(UserTable.ALL_TIME_CALORIES_BURNED));
@@ -249,14 +251,22 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
                 double caloriesToBeAdded = calories - initialAllTimeCaloriesBurned;
                 initialAllTimeCaloriesBurned = calories;
 
+                double currentAvgCaloriesBurned = Double.parseDouble(getDatabaseColumnValue(UserTable.AVG_CALORIES_BURNED));
+
                 //Updating time in database
                 Long currentAllTimeTime = Long.parseLong(getDatabaseColumnValue(UserTable.ALL_TIME_TIME));
                 currentAllTimeTime++;
+
+                Long currentAvgTime = Long.parseLong(getDatabaseColumnValue(UserTable.AVG_TIME));
+                currentAvgTime++;
 
                 ContentValues contentValues = new ContentValues();
                 contentValues.put(UserTable.ALL_TIME_DISTANCE, currentAllTimeDistance + distanceToBeAdded);
                 contentValues.put(UserTable.ALL_TIME_CALORIES_BURNED, currentAllTimeCaloriesBurned + caloriesToBeAdded);
                 contentValues.put(UserTable.ALL_TIME_TIME, String.valueOf(currentAllTimeTime));
+                contentValues.put(UserTable.AVG_DISTANCE, currentAvgDistance + distanceToBeAdded);
+                contentValues.put(UserTable.AVG_CALORIES_BURNED, currentAvgCaloriesBurned + caloriesToBeAdded);
+                contentValues.put(UserTable.AVG_TIME, String.valueOf(currentAvgTime));
                 getContentResolver().update(MyContentProvider.CONTENT_URI, contentValues, "_id = ?", new String[] {"1"});
 
                 //Update the value of step count returned by sensor
@@ -421,9 +431,13 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
 
         //Update all time workouts number
         int currentAllTimeWorkouts = Integer.parseInt(getDatabaseColumnValue(UserTable.ALL_TIME_WORKOUTS));
+        int currentAvgWorkouts = Integer.parseInt(getDatabaseColumnValue(UserTable.AVG_WORKOUTS));
         currentAllTimeWorkouts += 1;
+        currentAvgWorkouts += 1;
+        
         ContentValues contentValues = new ContentValues();
         contentValues.put(UserTable.ALL_TIME_WORKOUTS, currentAllTimeWorkouts);
+        contentValues.put(UserTable.AVG_WORKOUTS, currentAvgWorkouts);
         getContentResolver().update(MyContentProvider.CONTENT_URI, contentValues, "_id = ?", new String[] {"1"});
     }
 
