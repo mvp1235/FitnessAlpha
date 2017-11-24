@@ -86,6 +86,7 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
     //UI Elements
     private Button workoutButton;
 
+    private boolean firstStarted = true;
     static boolean workoutStarted = false;
     private int currentStepCount;
     private int sensorStepCount;
@@ -95,8 +96,7 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
     long startTime = 0L, elapsedTime = 0L;
     private final int REFRESH_RATE = 1000;
     private final int MAP_REFRESH_RATE = 10000;
-    private final int CALORIES_REFRESH_RATE = 5000;
-    private final int STEPS_REFRESH_RATE = 5000;
+    private final int CHART_REFRESH_RATE = 5000;
     private boolean restart = false;
     private TextView durationTV;
 
@@ -180,7 +180,7 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
                     e = new Entry(0f, 0);   //add starting plot
                 }
                 caloriesEntries.add(e);
-                handler.postDelayed(this, CALORIES_REFRESH_RATE);
+                handler.postDelayed(this, CHART_REFRESH_RATE);
             }
         };
 
@@ -192,7 +192,7 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
                     e = new Entry(0f,0);    //add starting plot
                 }
                 stepsEntries.add(e);
-                handler.postDelayed(this, CALORIES_REFRESH_RATE);
+                handler.postDelayed(this, CHART_REFRESH_RATE);
             }
         };
 
@@ -319,7 +319,6 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
         durationTV = (TextView) findViewById(R.id.recordDurationValue);
         distanceTV = (TextView) findViewById(R.id.recordDistanceValue);
 
-
     }
 
     @Override
@@ -396,6 +395,15 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
     }
 
     public void startWorkout() {
+        if (current != null)
+            current.remove();
+        if (!firstStarted) {
+            mMap.clear();
+        }
+        if (line != null)
+            line.remove();
+
+
         workoutStarted = true;
         workoutButton.setText(R.string.stopWorkout);
         workoutButton.setBackgroundColor(getResources().getColor(R.color.red_stop_color));
@@ -422,8 +430,8 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
         //Start workout detail threads
         handler.removeCallbacks(addCaloriesPer1Min);
         handler.removeCallbacks(addStepsCountPer5Min);
-        handler.postDelayed(addStepsCountPer5Min, CALORIES_REFRESH_RATE);
-        handler.postDelayed(addCaloriesPer1Min, CALORIES_REFRESH_RATE);
+        handler.postDelayed(addStepsCountPer5Min, CHART_REFRESH_RATE);
+        handler.postDelayed(addCaloriesPer1Min, CHART_REFRESH_RATE);
 
         //Map
         handler.removeCallbacks(mapUpdate);
@@ -439,11 +447,14 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
         contentValues.put(UserTable.ALL_TIME_WORKOUTS, currentAllTimeWorkouts);
         contentValues.put(UserTable.AVG_WORKOUTS, currentAvgWorkouts);
         getContentResolver().update(MyContentProvider.CONTENT_URI, contentValues, "_id = ?", new String[] {"1"});
+
+        firstStarted = false;
     }
 
     public void stopWorkout() {
         secondsPassed = 0;
         workoutStarted = false;
+        firstMarker = true;
         workoutButton.setText(R.string.startWorkout);
         workoutButton.setBackgroundColor(getResources().getColor(R.color.green_start_color));
 
@@ -475,8 +486,9 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
 
         caloriesEntries = new ArrayList<>();
         stepsEntries = new ArrayList<>();
-        path = new ArrayList<>();
 
+        polylineOptions = new PolylineOptions().width(5).color(Color.BLUE).geodesic(true);
+        path.clear();
     }
 
 
@@ -582,6 +594,7 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
                             mLastKnownLocation = (Location) task.getResult();
                             if (mLastKnownLocation != null) {
                                 LatLng currentLocation = new LatLng(mLastKnownLocation.getLatitude(), mLastKnownLocation.getLongitude());
+
                                 polylineOptions.add(currentLocation);
 
                                 mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(
@@ -596,6 +609,7 @@ public class MainScreenActivity extends FragmentActivity implements OnMapReadyCa
                                 } else {
                                     if (current != null)
                                         current.remove();
+
                                     current =  mMap.addMarker(new MarkerOptions()
                                             .position(currentLocation)
                                             .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_CYAN)));

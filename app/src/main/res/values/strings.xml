@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Fitness Alpha</string>
+    <string name="app_name">Alpha Fitness</string>
     <string name="title_activity_record_workout">Record Workout</string>
     <string name="recordWorkout">Record Workout</string>
     <string name="userProfileBtnDescription">Navigates the user to the profile screen</string>
