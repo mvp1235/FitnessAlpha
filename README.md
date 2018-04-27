@@ -7,7 +7,8 @@ A Content Provider is used to keep a record of all workouts performed, and the d
 # In-App Interface
 
 ### Landscape Mode During Workout
-<img src="https://user-images.githubusercontent.com/15053859/39386779-138fe19e-4a2b-11e8-89c5-54b176f5ca53.jpg" width="300" height="500">
+![landscape mode during workout](https://user-images.githubusercontent.com/15053859/39386876-79f8cc3e-4a2b-11e8-9e6c-19cfb0b0dd68.jpg)
+
 
 ### Portrait Mode During Workout
 <img src="https://user-images.githubusercontent.com/15053859/39386780-13a9152e-4a2b-11e8-8ede-28a00300145b.jpg" width="300" height="500">
